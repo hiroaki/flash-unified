@@ -1,3 +1,8 @@
+PATH
+  remote: ../..
+  specs:
+    flash_unified (0.1.0)
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -195,6 +200,7 @@ PLATFORMS
 
 DEPENDENCIES
   debug
+  flash_unified!
   propshaft
   puma (>= 5.0)
   rails (~> 8.0.2, >= 8.0.2.1)
