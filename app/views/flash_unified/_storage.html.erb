@@ -1,0 +1,10 @@
+<div id="flash-storage" style="display: none;">
+  <div data-flash-storage>
+    <ul>
+      <% flash.each do |type, message| %>
+        <li data-type="<%= type %>"><%= message %></li>
+      <% end %>
+    </ul>
+  </div>
+</div>
+
