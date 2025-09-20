@@ -228,6 +228,23 @@ function initializeFlashMessageSystem(debugFlag) {
       renderFlashMessages();
     });
   })();
+
+  let domLoaded = false;
+  document.addEventListener('DOMContentLoaded', function() {
+    if (domLoaded) return;
+    domLoaded = true;
+    debugLog('DOMContentLoaded');
+    renderFlashMessages();
+  });
+
+  // If the document is already loaded (e.g. script loaded late), run once
+  if (document.readyState === "complete" || document.readyState === "interactive") {
+    if (!domLoaded) {
+      domLoaded = true;
+      debugLog('DOMContentLoaded (late)');
+      renderFlashMessages();
+    }
+  }
 }
 
 /* フラッシュ・メッセージの表示をクリアします。
