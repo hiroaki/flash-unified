@@ -118,6 +118,25 @@ Recommended minimal layout snippet (place inside `<body>`):
 
 If you prefer to include partials manually instead of using helpers, render the engine partials under `flash_unified/` (the generator copies them to that path by default).
 
+Optional JSON + CustomEvent
+---------------------------
+
+既定値は「非表示 DOM（hidden storage）＋初期スキャン」です。必要に応じて、以下のオプションも利用できます（CSP ポリシーに注意）。
+
+- JSON script でのメッセージ出力（自動描画はしません。クライアント側で `handleFlashPayload` へ渡すか、CustomEvent を dispatch してください）:
+
+```erb
+<%= flash_storage_json %>
+```
+
+- カスタムイベントのインライン dispatch（CSP の nonce がある場合は自動付与します）:
+
+```erb
+<%= flash_dispatch_event(payload: [{ type: :notice, message: "Saved" }]) %>
+```
+
+クライアント側では `initializeFlashMessageSystem()` が `flash-unified:messages` を受け取り `handleFlashPayload` を実行します。Inline script を避けたい場合は、サーバ側での dispatch をやめ、クライアントの `enableMutationObserver()` を有効にする方法もあります（ただし既定では無効）。
+
 Locale files
 ------------
 
