@@ -131,3 +131,48 @@ Notes and next steps
 - Tests for the generator and helper integration are not included yet; adding small unit/integration tests would be a good follow-up.
 
 If anything here is unclear or you want a different default for the generator (for example, not copying view partials), tell me which behavior you prefer and I can update the README and generator accordingly.
+
+## 開発ルール（おすすめの運用）
+
+このプロジェクトの開発・検証を安定して進めるための運用ルールです。
+
+- test/dummy は常にプレーン（無配線）
+    - 目的: インストールジェネレータの検証を毎回クリーンな状態で実施するため。
+    - 原則として、`test/dummy` には importmap の pin、JS 初期化、レイアウトへのヘルパ挿入など「手動配線」はコミットしません。
+    - 検証フロー（例）:
+
+```bash
+cd test/dummy
+bin/rails generate flash_unified:install
+bin/rails server
+```
+
+- サンドボックス用ブランチでの構成検証（マージしないブランチ）
+    - ある程度機能が固まりタグを打てる状態になったら、そのタグから「サンドボックス」ブランチを作り、各構成（例: importmap / propshaft / Rails 7+ など）でジェネレータからセットアップした Rails アプリを配置・検証します。
+    - ブランチ命名例: `sandbox/importmap`, `sandbox/propshaft`, `sandbox/rails7` など（main にマージしない前提）。
+    - 配置例: ブランチ内に `sandbox/<profile>/` ディレクトリを作成し、その直下に Rails アプリを作成。Gem は path 参照でこのリポジトリを指します。
+
+```bash
+# タグからサンドボックスブランチを作成
+git checkout -b sandbox/importmap v0.x.0
+
+# Rails アプリを作成（ブランチ内ディレクトリ）
+rails new sandbox/importmap --skip-hotwire # フラグはお好みで
+
+# sandbox/importmap/Gemfile に追記（リポジトリ相対パス）
+# gem 'flash_unified', path: '../../'
+
+cd sandbox/importmap
+bin/rails generate flash_unified:install
+bin/rails server
+```
+
+- コミット/PR の切り方（推奨）
+    - コアコード（例: `app/javascript/flash_unified/flash_unified.js`）とドキュメント、ジェネレータ、テストはコミットを分離。
+    - dummy の変更は「プレーン維持」のため基本コミットしない（ジェネレータ検証は毎回手元で実行）。
+    - 変更の大きい修正は読みやすい差分を心がけ、レビューしやすい単位に分割。
+
+- JS/CSP の基本方針
+    - 既定値は非表示 DOM（hidden storage）＋初期スキャン、CustomEvent と JSON script はオプション。
+    - グローバル変数は使用せず、`data-*` 属性で初期化フラグを管理（single-init）。
+    - Inline script は避ける（必要時のみ、CSP を考慮して明示的に）。
