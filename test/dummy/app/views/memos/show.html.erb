@@ -1,0 +1,8 @@
+<%= render @memo %>
+
+<div>
+  <%= link_to "Edit this memo", edit_memo_path(@memo) %> |
+  <%= link_to "Back to memos", memos_path %>
+
+  <%= button_to "Destroy this memo", @memo, method: :delete %>
+</div>

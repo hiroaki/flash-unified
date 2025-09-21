@@ -1,0 +1,14 @@
+<% content_for :title, "Memos" %>
+
+<h1>Memos</h1>
+
+<div id="memos">
+  <% @memos.each do |memo| %>
+    <%= render memo %>
+    <p>
+      <%= link_to "Show this memo", memo %>
+    </p>
+  <% end %>
+</div>
+
+<%= link_to "New memo", new_memo_path %>

@@ -131,4 +131,3 @@ Notes and next steps
 - Tests for the generator and helper integration are not included yet; adding small unit/integration tests would be a good follow-up.
 
 If anything here is unclear or you want a different default for the generator (for example, not copying view partials), tell me which behavior you prefer and I can update the README and generator accordingly.
-
