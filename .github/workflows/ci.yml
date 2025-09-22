@@ -15,6 +15,8 @@ jobs:
     strategy:
       matrix:
         ruby: [3.2, 3.3]
+      # limit parallel matrix cells to avoid overwhelming rubygems.org
+      max-parallel: 2
     steps:
       - uses: actions/checkout@v4
       - name: Setup Ruby
@@ -26,6 +28,20 @@ jobs:
       - name: Install bundler
         run: gem install bundler
 
+      - name: Compute Gemfile hash
+        id: gemfile_hash
+        run: |
+          # compute hash of Gemfile to use in cache key
+          if [ -f Gemfile ]; then echo "hash=$(sha1sum Gemfile | awk '{print $1}')" >> "$GITHUB_OUTPUT"; else echo "hash=missing" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Cache Ruby gems
+        uses: actions/cache@v4
+        with:
+          path: vendor/bundle
+          key: ${{ runner.os }}-gems-${{ matrix.ruby }}-${{ steps.gemfile_hash.outputs.hash }}
+          restore-keys: |
+            ${{ runner.os }}-gems-${{ matrix.ruby }}-
+
       - name: Ensure no Gemfile.lock influence
         run: |
           # Remove any checked-in Gemfile.lock to force fresh resolution in CI
@@ -33,8 +49,9 @@ jobs:
 
       - name: Install dependencies (fresh)
         run: |
+          bundle config set --local path 'vendor/bundle'
           bundle config set --local without 'production'
-          bundle install --jobs 4 --retry 3
+          bundle install --jobs 1 --retry 2
 
       - name: Run unit tests
         run: bundle exec rake test
@@ -47,6 +64,8 @@ jobs:
       matrix:
         ruby: [3.2, 3.3]
         rails: ["7.1.5.2", "7.2.2.2", "8.0.2.1"]
+      # limit parallel matrix cells to avoid overwhelming rubygems.org
+      max-parallel: 2
     env:
       RAILS_VERSION: ${{ matrix.rails }}
     steps:
@@ -70,11 +89,26 @@ jobs:
           # ensure we don't accidentally use a checked-in Gemfile.lock
           if [ -f Gemfile.lock ]; then rm -f Gemfile.lock || true; fi
 
+      - name: Compute Gemfile.ci hash
+        id: gemfile_hash
+        run: |
+          if [ -f Gemfile.ci ]; then echo "hash=$(sha1sum Gemfile.ci | awk '{print $1}')" >> "$GITHUB_OUTPUT"; else echo "hash=missing" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Cache Ruby gems (generator)
+        uses: actions/cache@v4
+        with:
+          path: vendor/bundle
+          key: ${{ runner.os }}-gems-${{ matrix.ruby }}-${{ matrix.rails }}-${{ steps.gemfile_hash.outputs.hash }}
+          restore-keys: |
+            ${{ runner.os }}-gems-${{ matrix.ruby }}-${{ matrix.rails }}-
+            ${{ runner.os }}-gems-${{ matrix.ruby }}-
+
       - name: Install dependencies (CI Gemfile, fresh)
         run: |
           export BUNDLE_GEMFILE=$(pwd)/Gemfile.ci
+          bundle config set --local path 'vendor/bundle'
           bundle config set --local without 'production'
-          bundle install --jobs 4 --retry 3
+          bundle install --jobs 1 --retry 2
 
       - name: Run generator tests
         run: |
