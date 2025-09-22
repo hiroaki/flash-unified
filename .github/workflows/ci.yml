@@ -64,8 +64,9 @@ jobs:
         run: |
           # Work on a copy so we never rely on the repo's Gemfile.lock
           cp Gemfile Gemfile.ci
-          echo "\n# Added by CI for generator tests" >> Gemfile.ci
-          echo "gem 'rails', '${RAILS_VERSION}', group: [:development, :test]" >> Gemfile.ci
+          # append a comment and the rails gem line using printf so we get real newlines
+          printf '\n# Added by CI for generator tests\n' >> Gemfile.ci
+          printf "gem 'rails', '%s', group: [:development, :test]\n" "${RAILS_VERSION}" >> Gemfile.ci
           # ensure we don't accidentally use a checked-in Gemfile.lock
           if [ -f Gemfile.lock ]; then rm -f Gemfile.lock || true; fi
 
