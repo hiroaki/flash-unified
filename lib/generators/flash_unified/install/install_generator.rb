@@ -14,87 +14,31 @@ module FlashUnified
           File.join("..", "..", "..", "..", "app", "javascript", "flash_unified"),
           __dir__
         )
-
-        unless File.directory?(source)
-          say_status :error, "could not find source javascript directory: #{source}", :red
-          return
-        end
-        FileUtils.mkdir_p("app/javascript") unless Dir.exist?("app/javascript")
-        target = "app/javascript/flash_unified"
-        if Dir.exist?(target)
-          if options[:force]
-            FileUtils.rm_rf(target)
-            FileUtils.cp_r(File.join(source, "."), target)
-            say_status :overwrite, target
-          else
-            say_status :skip, target
-          end
+        installer = FlashUnified::Installer.new(source_root: File.expand_path('../../../../', __dir__), target_root: Dir.pwd, force: options[:force])
+        result = installer.copy_javascript
+        case result
+        when :created
+          say_status :create, "app/javascript/flash_unified"
+        when :overwritten
+          say_status :overwrite, "app/javascript/flash_unified"
         else
-          FileUtils.cp_r(File.join(source, "."), target)
-          say_status :create, target
+          say_status :skip, "app/javascript/flash_unified"
         end
       end
 
       # View partials are copied into your host app so you can customize them.
       def copy_view_partials
-        source_dir = File.expand_path(File.join("..", "..", "..", "..", "app", "views", "flash_unified"), __dir__)
-        unless File.directory?(source_dir)
-          say_status :error, "could not find source views directory: #{source_dir}", :red
-          return
-        end
-
-        target_dir = "app/views/flash_unified"
-        FileUtils.mkdir_p(target_dir) unless Dir.exist?(target_dir)
-
-        # Copy templates, storage, global storage, container, general error
-        # messages, and optional JSON/dispatch samples so host apps always have
-        # the canonical markup available to customize.
-        %w[
-          _templates.html.erb
-          _storage.html.erb
-          _global_storage.html.erb
-          _container.html.erb
-          _general_error_messages.html.erb
-          _storage_json.html.erb
-          _dispatch_event.html.erb
-        ].each do |fname|
-          src = File.join(source_dir, fname)
-          dst = File.join(target_dir, fname)
-          if File.exist?(dst)
-            if options[:force]
-              FileUtils.cp(src, dst)
-              say_status :overwrite, dst
-            else
-              say_status :skip, dst
-            end
-          else
-            FileUtils.cp(src, dst)
-            say_status :create, dst
-          end
-        end
+        say_status :copy, "app/views/flash_unified"
+        installer = FlashUnified::Installer.new(source_root: File.expand_path('../../../../', __dir__), target_root: Dir.pwd, force: options[:force])
+        installer.copy_views
+        say_status :create, "app/views/flash_unified"
       end
 
       def copy_locales
-        source_dir = File.expand_path(File.join("..", "..", "..", "..", "config", "locales"), __dir__)
-        return unless File.directory?(source_dir)
-
-        target_dir = "config/locales"
-        FileUtils.mkdir_p(target_dir) unless Dir.exist?(target_dir)
-
-        Dir.glob(File.join(source_dir, "*.yml")).each do |src|
-          dst = File.join(target_dir, File.basename(src))
-          if File.exist?(dst)
-            if options[:force]
-              FileUtils.cp(src, dst)
-              say_status :overwrite, dst
-            else
-              say_status :skip, dst
-            end
-          else
-            FileUtils.cp(src, dst)
-            say_status :create, dst
-          end
-        end
+        say_status :copy, "config/locales"
+        installer = FlashUnified::Installer.new(source_root: File.expand_path('../../../../', __dir__), target_root: Dir.pwd, force: options[:force])
+        installer.copy_locales
+        say_status :create, "config/locales"
       end
 
       def show_importmap_instructions
