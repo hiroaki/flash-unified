@@ -140,7 +140,14 @@ function appendMessageToStorage(message, type = 'alert') {
 /* ページでフラッシュ・メッセージの仕組みを働かせるようにします。
   ページのロードが完了したときに一度だけ呼び出してください。
   */
-function initializeFlashMessageSystem(debugFlag) {
+function initializeFlashMessageSystem(debugFlag = false) {
+  // Ensure listeners are registered only once per document lifecycle
+  const root = document.documentElement;
+  if (root.hasAttribute('data-flash-unified-initialized')) {
+    return; // idempotent init
+  }
+  root.setAttribute('data-flash-unified-initialized', 'true');
+
   const debugLog = debugFlag ? function(message) {
     console.debug(message);
   } : function() {};
@@ -174,6 +181,20 @@ function initializeFlashMessageSystem(debugFlag) {
       handleFlashErrorStatus(res.statusCode);
     }
     renderFlashMessages();
+  });
+
+  // Optional: Listen for custom dispatch from server or other JS
+  // Event name: "flash-unified:messages"
+  // event.detail can be:
+  //   - Array of { type: string, message: string }
+  //   - { messages: Array<{ type: string, message: string }> }
+  document.addEventListener('flash-unified:messages', function(event) {
+    debugLog('flash-unified:messages');
+    try {
+      handleFlashPayload(event.detail);
+    } catch (e) {
+      console.error('[FlashMessage] Failed to handle custom payload', e);
+    }
   });
 
   // Setup custom turbo:after-stream-render event for Turbo Stream updates
@@ -322,10 +343,65 @@ function anyFlashStorageHasMessage() {
 
 //
 
+// Handle a payload of messages and render them.
+// Accepts either an array of { type, message } or an object { messages: [...] }.
+function handleFlashPayload(payload) {
+  if (!payload) return;
+  const list = Array.isArray(payload)
+    ? payload
+    : (Array.isArray(payload.messages) ? payload.messages : []);
+  if (list.length === 0) return;
+  list.forEach(({ type, message }) => {
+    if (!message) return;
+    appendMessageToStorage(String(message), type || 'notice');
+  });
+  renderFlashMessages();
+}
+
+// Optional: Enable a MutationObserver that watches for dynamically inserted
+// flash storage or templates and triggers rendering. Useful when you cannot
+// or do not want to dispatch a custom event from server responses.
+function enableMutationObserver(options = {}) {
+  const root = document.documentElement;
+  if (root.hasAttribute('data-flash-unified-observer-enabled')) return;
+  root.setAttribute('data-flash-unified-observer-enabled', 'true');
+
+  const debug = !!options.debug;
+  const log = debug ? (msg) => console.debug(msg) : () => {};
+
+  const observer = new MutationObserver((mutations) => {
+    let shouldRender = false;
+    for (const m of mutations) {
+      if (m.type === 'childList') {
+        m.addedNodes.forEach((node) => {
+          if (!(node instanceof Element)) return;
+          if (node.matches('[data-flash-storage], [data-flash-message-container], template[id^="flash-message-template-"]')) {
+            shouldRender = true;
+          }
+          if (node.querySelector && node.querySelector('[data-flash-storage]')) {
+            shouldRender = true;
+          }
+        });
+      }
+    }
+    if (shouldRender) {
+      log('MutationObserver: renderFlashMessages');
+      renderFlashMessages();
+    }
+  });
+
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+}
+
 export {
   renderFlashMessages,
   appendMessageToStorage,
   initializeFlashMessageSystem,
-  clearFlashMessages
+  clearFlashMessages,
+  handleFlashPayload,
+  enableMutationObserver
 };
 

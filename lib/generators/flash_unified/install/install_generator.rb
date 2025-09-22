@@ -4,7 +4,9 @@ require "rails/generators/base"
 module FlashUnified
   module Generators
     class InstallGenerator < Rails::Generators::Base
-      desc "Copies FlashUnified javascript and view partials to your host app and prints importmap instructions."
+      desc "Copies FlashUnified javascript, view partials, locales and prints importmap instructions."
+
+      class_option :force, type: :boolean, default: false, desc: "Overwrite existing files"
 
       def copy_javascript
         say_status :copy, "app/javascript/flash_unified"
@@ -12,62 +14,31 @@ module FlashUnified
           File.join("..", "..", "..", "..", "app", "javascript", "flash_unified"),
           __dir__
         )
-
-        unless File.directory?(source)
-          say_status :error, "could not find source javascript directory: #{source}", :red
-          return
+        installer = FlashUnified::Installer.new(source_root: File.expand_path('../../../../', __dir__), target_root: Dir.pwd, force: options[:force])
+        result = installer.copy_javascript
+        case result
+        when :created
+          say_status :create, "app/javascript/flash_unified"
+        when :overwritten
+          say_status :overwrite, "app/javascript/flash_unified"
+        else
+          say_status :skip, "app/javascript/flash_unified"
         end
-
-        FileUtils.mkdir_p("app/javascript") unless Dir.exist?("app/javascript")
-        FileUtils.cp_r(File.join(source, "."), "app/javascript/flash_unified")
       end
 
-      # View partials are intentionally NOT copied by default. The helper
-      # `flash_container` renders the storage element for you and the engine
-      # provides the canonical partials. If you explicitly want to copy the
-      # partials into your host app for customization, run the generator with
-      # `--views` which will copy them into `app/views/flash_unified/`.
+      # View partials are copied into your host app so you can customize them.
       def copy_view_partials
-        source_dir = File.expand_path(File.join("..", "..", "..", "..", "app", "views", "flash_unified"), __dir__)
-        unless File.directory?(source_dir)
-          say_status :error, "could not find source views directory: #{source_dir}", :red
-          return
-        end
-
-        target_dir = "app/views/flash_unified"
-        FileUtils.mkdir_p(target_dir) unless Dir.exist?(target_dir)
-
-        # Copy templates, storage, global storage, container and general error
-        # message partials by default so host apps always have the canonical
-        # markup available to customize.
-        %w[_templates.html.erb _storage.html.erb _container.html.erb _global_storage.html.erb _general_error_messages.html.erb].each do |fname|
-          src = File.join(source_dir, fname)
-          dst = File.join(target_dir, fname)
-          if File.exist?(dst)
-            say_status :skip, dst
-          else
-            FileUtils.cp(src, dst)
-            say_status :create, dst
-          end
-        end
+        say_status :copy, "app/views/flash_unified"
+        installer = FlashUnified::Installer.new(source_root: File.expand_path('../../../../', __dir__), target_root: Dir.pwd, force: options[:force])
+        installer.copy_views
+        say_status :create, "app/views/flash_unified"
       end
 
       def copy_locales
-        source_dir = File.expand_path(File.join("..", "..", "..", "..", "config", "locales"), __dir__)
-        return unless File.directory?(source_dir)
-
-        target_dir = "config/locales"
-        FileUtils.mkdir_p(target_dir) unless Dir.exist?(target_dir)
-
-        Dir.glob(File.join(source_dir, "*.yml")).each do |src|
-          dst = File.join(target_dir, File.basename(src))
-          if File.exist?(dst)
-            say_status :skip, dst
-          else
-            FileUtils.cp(src, dst)
-            say_status :create, dst
-          end
-        end
+        say_status :copy, "config/locales"
+        installer = FlashUnified::Installer.new(source_root: File.expand_path('../../../../', __dir__), target_root: Dir.pwd, force: options[:force])
+        installer.copy_locales
+        say_status :create, "config/locales"
       end
 
       def show_importmap_instructions
@@ -76,27 +47,29 @@ module FlashUnified
           === FlashUnified installation instructions ===
 
           What this generator installs
-          - JavaScript client: copied into `app/javascript/flash_unified`.
-          - View partials: `_templates.html.erb`, `_storage.html.erb`, `_global_storage.html.erb`, `_container.html.erb`, and `_general_error_messages.html.erb` are copied into `app/views/flash_unified`.
-          - Locale files: any `config/locales/*.yml` from the gem are copied into your app's `config/locales` (existing files are skipped).
+          - JavaScript client: copied into `app/javascript/flash_unified` (skips unless `--force`).
+          - View partials: copied into `app/views/flash_unified` (skips unless `--force`).
+            - Core: `_templates.html.erb`, `_storage.html.erb`, `_global_storage.html.erb`, `_container.html.erb`, `_general_error_messages.html.erb`
+            - Optional samples: `_storage_json.html.erb`, `_dispatch_event.html.erb`
+          - Locale files: any `config/locales/*.yml` from the gem are copied into your app's `config/locales` (skips unless `--force`).
 
           Importing the JavaScript
           - Importmap: add to `config/importmap.rb`:
 
               pin "flash_unified", to: "flash_unified/flash_unified.js"
 
-            then import it in your JavaScript entrypoint:
+            then initialize it in your JavaScript entrypoint (idempotent):
 
-              import "flash_unified"
+              import { initializeFlashMessageSystem } from "flash_unified";
+              addEventListener('DOMContentLoaded', () => initializeFlashMessageSystem());
+              addEventListener('turbo:load', () => initializeFlashMessageSystem());
 
           - Propshaft/Sprockets: the engine adds its `app/javascript` to the asset paths so you can include the script with:
 
               <%= javascript_include_tag "flash_unified/flash_unified" %>
 
           How to place partials in your layout
-          - The gem's view helpers render engine partials. After running this
-            generator you'll have the partials available under
-            `app/views/flash_unified` and can customize them as needed.
+          - The gem's view helpers render engine partials. After running this generator you'll have the partials available under `app/views/flash_unified` and can customize them as needed.
 
           Recommended layout snippet (inside `<body>`):
 
@@ -107,7 +80,11 @@ module FlashUnified
 
           Notes
           - The client JS expects a storage element with `id="flash-storage"` (the `_global_storage.html.erb` partial provides this). Do not rename this id unless you update the client code.
-          - Locale files are only copied if they do not already exist in the host app; if you want to overwrite, edit the files in your host app's `config/locales`.
+          - Optional JSON + CustomEvent:
+            - `<%= flash_storage_json %>` outputs messages as `script[type="application/json"][data-flash-unified]`.
+            - `<%= flash_dispatch_event(payload: [...]) %>` dispatches the `flash-unified:messages` event inline (be mindful of CSP; a nonce is attached automatically when available).
+            - To avoid inline scripts, enable `enableMutationObserver()` on the client.
+          - Locale files are only copied if they do not already exist in the host app; with `--force` existing files are overwritten.
 
         MSG
 
