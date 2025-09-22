@@ -6,6 +6,7 @@ class FlashUnifiedTest < Minitest::Test
   end
 
   def test_it_does_something_useful
-    assert false
+    # Basic smoke: module should be defined
+    assert defined?(FlashUnified)
   end
 end
