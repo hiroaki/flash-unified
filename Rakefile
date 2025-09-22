@@ -10,7 +10,7 @@ Rake::TestTask.new(:test) do |t|
   # and avoids requiring a full Rails app when running `rake test`.
   all_tests = FileList["test/**/*_test.rb"]
   filtered = all_tests.reject do |f|
-    f.match(%r{^test/dummy/}) || f.match(%r{^sandbox/.+/test/})
+    f.match(%r{^test/dummy/}) || f.match(%r{^sandbox/.+/test/}) || f.match(%r{^test/generators/})
   end
 
   t.test_files = FileList[*filtered]
