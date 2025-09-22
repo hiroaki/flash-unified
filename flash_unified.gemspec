@@ -3,13 +3,13 @@ require_relative 'lib/flash_unified/version'
 Gem::Specification.new do |spec|
   spec.name          = "flash_unified"
   spec.version       = FlashUnified::VERSION
-  spec.authors       = ["WATANABE Hiroaki"]
+  spec.authors       = ["hiroaki"]
   spec.email         = ["176736+hiroaki@users.noreply.github.com"]
 
   spec.summary       = %q{Unified flash message system for Rails applications}
   spec.description   = %q{A Rails engine that provides a unified system for displaying both server-side and client-side flash messages with consistent templates and logic. Supports Hotwire/Turbo, customizable templates, and easy integration into any Rails app.}
   spec.homepage      = "https://github.com/hiroaki/flash-unified"
-  spec.license       = "MIT"
+  spec.license       = "0BSD"
   spec.required_ruby_version = Gem::Requirement.new(">= 2.3.0")
 
   #spec.metadata["allowed_push_host"] = "TODO: Set to 'http://mygemserver.com'"
