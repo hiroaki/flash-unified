@@ -1,5 +1,6 @@
 require 'test_helper'
 require 'generators/flash_unified/install/install_generator'
+require 'flash_unified/installer'
 
 class InstallGeneratorTest < Rails::Generators::TestCase
   tests FlashUnified::Generators::InstallGenerator
