@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [ develop ]
+  pull_request:
+    branches: [ develop ]
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    name: Unit tests (fresh resolve)
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    strategy:
+      matrix:
+        ruby: [3.2, 3.3]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          cache-bundle: true
+
+      - name: Install bundler
+        run: gem install bundler
+
+      - name: Ensure no Gemfile.lock influence
+        run: |
+          # Remove any checked-in Gemfile.lock to force fresh resolution in CI
+          if [ -f Gemfile.lock ]; then git rm -f --ignore-unmatch Gemfile.lock || true; fi
+
+      - name: Install dependencies (fresh)
+        run: |
+          bundle config set --local without 'production'
+          bundle install --jobs 4 --retry 3
+
+      - name: Run unit tests
+        run: bundle exec rake test
+
+  generator-tests:
+    name: Generator tests (Rails matrix, fresh resolve)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        ruby: [3.2, 3.3]
+        rails: ["7.1.5.2", "7.2.2.2", "8.0.2.1"]
+    env:
+      RAILS_VERSION: ${{ matrix.rails }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          cache-bundle: true
+
+      - name: Install bundler
+        run: gem install bundler
+
+      - name: Prepare temporary Gemfile for CI (fresh)
+        run: |
+          # Work on a copy so we never rely on the repo's Gemfile.lock
+          cp Gemfile Gemfile.ci
+          echo "\n# Added by CI for generator tests" >> Gemfile.ci
+          echo "gem 'rails', '${RAILS_VERSION}', group: [:development, :test]" >> Gemfile.ci
+          # ensure we don't accidentally use a checked-in Gemfile.lock
+          if [ -f Gemfile.lock ]; then rm -f Gemfile.lock || true; fi
+
+      - name: Install dependencies (CI Gemfile, fresh)
+        run: |
+          export BUNDLE_GEMFILE=$(pwd)/Gemfile.ci
+          bundle config set --local without 'production'
+          bundle install --jobs 4 --retry 3
+
+      - name: Run generator tests
+        run: |
+          export BUNDLE_GEMFILE=$(pwd)/Gemfile.ci
+          bundle exec rake test TEST=test/generators/install_generator_test.rb
