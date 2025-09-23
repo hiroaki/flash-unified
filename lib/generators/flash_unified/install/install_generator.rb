@@ -50,7 +50,6 @@ module FlashUnified
           - JavaScript client: copied into `app/javascript/flash_unified` (skips unless `--force`).
           - View partials: copied into `app/views/flash_unified` (skips unless `--force`).
             - Core: `_templates.html.erb`, `_storage.html.erb`, `_global_storage.html.erb`, `_container.html.erb`, `_general_error_messages.html.erb`
-            - Optional samples: `_storage_json.html.erb`, `_dispatch_event.html.erb`
           - Locale files: any `config/locales/*.yml` from the gem are copied into your app's `config/locales` (skips unless `--force`).
 
           Importing the JavaScript
@@ -80,10 +79,6 @@ module FlashUnified
 
           Notes
           - The client JS expects a storage element with `id="flash-storage"` (the `_global_storage.html.erb` partial provides this). Do not rename this id unless you update the client code.
-          - Optional JSON + CustomEvent:
-            - `<%= flash_storage_json %>` outputs messages as `script[type="application/json"][data-flash-unified]`.
-            - `<%= flash_dispatch_event(payload: [...]) %>` dispatches the `flash-unified:messages` event inline (be mindful of CSP; a nonce is attached automatically when available).
-            - To avoid inline scripts, enable `enableMutationObserver()` on the client.
           - Locale files are only copied if they do not already exist in the host app; with `--force` existing files are overwritten.
 
         MSG
