@@ -29,8 +29,6 @@ module FlashUnified
         _global_storage.html.erb
         _container.html.erb
         _general_error_messages.html.erb
-        _storage_json.html.erb
-        _dispatch_event.html.erb
       ]
       copy_files(files, src_dir, dst_dir)
     end
