@@ -273,13 +273,19 @@ function initializeFlashMessageSystem(debugFlag = false) {
     message が省略された場合は全てが対象です。
   */
 function clearFlashMessages(message) {
-  Array.from(document.querySelectorAll('[data-flash-message-container]'))
-    .filter(container => {
-      if (typeof message === 'undefined') return true;
-      const text = container.querySelector('.flash-message-text');
-      return text && text.textContent.trim() === message;
-    })
-    .forEach(container => { container.innerHTML = ''; });
+  document.querySelectorAll('[data-flash-message-container]').forEach(container => {
+    // メッセージ指定なし: メッセージ要素のみ全削除（コンテナ内の他要素は残す）
+    if (typeof message === 'undefined') {
+      container.querySelectorAll('[data-flash-message]')?.forEach(n => n.remove());
+      return;
+    }
+
+    // 指定メッセージに一致する要素だけ削除
+    container.querySelectorAll('[data-flash-message]')?.forEach(n => {
+      const text = n.querySelector('.flash-message-text');
+      if (text && text.textContent.trim() === message) n.remove();
+    });
+  });
 }
 
 // --- utility functions ---
@@ -289,6 +295,8 @@ function createFlashMessageNode(type, message) {
   const template = document.getElementById(templateId);
   if (template && template.content) {
     const node = template.content.cloneNode(true).children[0].cloneNode(true);
+    // 1メッセージ単位の境界を明示
+    node.setAttribute('data-flash-message', 'true');
     const span = node.querySelector('.flash-message-text');
     if (span) span.textContent = message;
     return node;
@@ -297,6 +305,7 @@ function createFlashMessageNode(type, message) {
     // テンプレートがない場合は生成（おかしいことに気づかせるため意図的に CSS は充てていません）
     const node = document.createElement('div');
     node.setAttribute('role', 'alert');
+    node.setAttribute('data-flash-message', 'true');
     const span = document.createElement('span');
     span.className = 'flash-message-text';
     span.textContent = message;
