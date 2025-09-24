@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Usage: bin/sandbox <name> [--path <path_to_gem_root>] [--scaffold]
+# Usage: bin/sandbox <variant> [--path <path_to_gem_root>] [--scaffold]
+# Variants:
+#   importmap   -> Rails app with importmap JS (default), asset pipeline default
+#   propshaft   -> Rails app with importmap JS and Propshaft asset pipeline
+#   sprockets   -> Rails app with importmap JS and Sprockets asset pipeline
 # Examples:
 #   bin/sandbox importmap
 #   bin/sandbox propshaft --path ../..   # explicit relative path (when pushing sandbox branch)
+#   bin/sandbox sprockets --scaffold     # optional scaffold and migrate
 #
 # By default, this script writes a RELATIVE path to the gem into the sandbox Gemfile
 # (e.g. '../..' from sandbox/<name> to the repo root) so that the sandbox can be
@@ -16,7 +21,7 @@ set -euo pipefail
 
 NAME=${1:-}
 if [[ -z "$NAME" ]]; then
-  echo "Usage: $(basename "$0") <name> [--path <gem_path>]" >&2
+  echo "Usage: $(basename "$0") <variant: importmap|propshaft|sprockets> [--path <gem_path>] [--scaffold]" >&2
   exit 1
 fi
 
@@ -57,8 +62,26 @@ fi
 
 mkdir -p "$ROOT_DIR/sandbox"
 
-# Create rails app with importmap explicitly, without git init and without auto bundle
-( cd "$ROOT_DIR/sandbox" && rails new "$NAME" --javascript=importmap --skip-git --skip-bundle )
+# Build rails new command with appropriate JS and asset pipeline settings
+rails_new=(rails new "$NAME" --skip-git --skip-bundle)
+case "$NAME" in
+  importmap)
+    rails_new+=(--javascript=importmap)
+    ;;
+  propshaft)
+    rails_new+=(--asset-pipeline=propshaft --skip-javascript)
+    ;;
+  sprockets)
+    rails_new+=(--asset-pipeline=sprockets --skip-javascript)
+    ;;
+  *)
+    # default to importmap if unknown variant
+    rails_new+=(--javascript=importmap)
+    ;;
+esac
+
+# Create rails app without git init and without auto bundle
+( cd "$ROOT_DIR/sandbox" && "${rails_new[@]}" )
 
 cd "$SANDBOX_DIR"
 
@@ -79,8 +102,11 @@ bundle install
 # Run install generator (force to keep iteration easy)
 bin/rails generate flash_unified:install --force
 
-# Apply app template to wire importmap pin, JS init, layout helpers, and optional scaffold
-APP_TEMPLATE="$ROOT_DIR/sandbox/templates/importmap.rb"
+# Apply app template matching the variant (falls back to importmap)
+APP_TEMPLATE="$ROOT_DIR/sandbox/templates/$NAME.rb"
+if [[ ! -f "$APP_TEMPLATE" ]]; then
+  APP_TEMPLATE="$ROOT_DIR/sandbox/templates/importmap.rb"
+fi
 FLASH_UNIFIED_SCAFFOLD=$([[ "$DO_SCAFFOLD" == "true" ]] && echo 1 || echo 0) \
   bin/rails app:template LOCATION="$APP_TEMPLATE"
 
@@ -93,6 +119,6 @@ Run:
   bin/rails server
 
 Then visit:
-  http://localhost:3000/memos
+  $( [[ "$DO_SCAFFOLD" == "true" ]] && echo "http://localhost:3000/memos" || echo "http://localhost:3000/" )
 
 EOM

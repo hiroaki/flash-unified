@@ -41,10 +41,13 @@ after_bundle do
 
   # Initialize from application.js (idempotent)
   init_snippet = <<~JS
-
     import { initializeFlashMessageSystem } from "flash_unified";
-    addEventListener('DOMContentLoaded', () => initializeFlashMessageSystem());
-    addEventListener('turbo:load', () => initializeFlashMessageSystem());
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initializeFlashMessageSystem);
+    } else {
+      initializeFlashMessageSystem();
+    }
   JS
   app_js_content = File.read(js_entry)
   unless app_js_content.include?('initializeFlashMessageSystem')
@@ -84,15 +87,29 @@ after_bundle do
     files.uniq.each do |file|
       next unless File.exist?(file)
 
+      content = File.read(file)
+
       # <p ...><%= notice %></p> -> <div style="color: green"><%= flash_container %></div>
-      gsub_file file, /<p[^>]*>\s*<%=\s*notice\s*%>\s*<\/p>\s*\n?/m, "<div style=\"color: green\"><%= flash_container %></div>\n"
+      rx_notice_p = /<p[^>]*>\s*<%=\s*notice\s*%>\s*<\/p>\s*\n?/m
+      if content.match?(rx_notice_p)
+        gsub_file file, rx_notice_p, "<div style=\"color: green\"><%= flash_container %></div>\n"
+      end
       # bare <%= notice %> on its own line -> same green container
-      gsub_file file, /^\s*<%=\s*notice\s*%>\s*$\n?/, "<div style=\"color: green\"><%= flash_container %></div>\n"
+      rx_notice_bare = /^\s*<%=\s*notice\s*%>\s*$\n?/
+      if content.match?(rx_notice_bare)
+        gsub_file file, rx_notice_bare, "<div style=\"color: green\"><%= flash_container %></div>\n"
+      end
 
       # <p ...><%= alert %></p> -> <div style="color: green"><%= flash_container %></div>
-      gsub_file file, /<p[^>]*>\s*<%=\s*alert\s*%>\s*<\/p>\s*\n?/m, "<div style=\"color: green\"><%= flash_container %></div>\n"
+      rx_alert_p = /<p[^>]*>\s*<%=\s*alert\s*%>\s*<\/p>\s*\n?/m
+      if content.match?(rx_alert_p)
+        gsub_file file, rx_alert_p, "<div style=\"color: green\"><%= flash_container %></div>\n"
+      end
       # bare <%= alert %> on its own line -> same green container
-      gsub_file file, /^\s*<%=\s*alert\s*%>\s*$\n?/, "<div style=\"color: green\"><%= flash_container %></div>\n"
+      rx_alert_bare = /^\s*<%=\s*alert\s*%>\s*$\n?/
+      if content.match?(rx_alert_bare)
+        gsub_file file, rx_alert_bare, "<div style=\"color: green\"><%= flash_container %></div>\n"
+      end
     end
   end
 
