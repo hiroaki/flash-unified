@@ -6,8 +6,8 @@ Gem::Specification.new do |spec|
   spec.authors       = ["hiroaki"]
   spec.email         = ["176736+hiroaki@users.noreply.github.com"]
 
-  spec.summary       = %q{Unified flash message system for Rails applications}
-  spec.description   = %q{A Rails engine that provides a unified system for displaying both server-side and client-side flash messages with consistent templates and logic. Supports Hotwire/Turbo, customizable templates, and easy integration into any Rails app.}
+  spec.summary       = %q{Unified server/client flash messages for Rails with consistent templates}
+  spec.description   = %q{Unified server/client flash messages for Rails with consistent templates—Turbo-ready, customizable, easy to integrate.}
   spec.homepage      = "https://github.com/hiroaki/flash-unified"
   spec.license       = "0BSD"
   spec.required_ruby_version = Gem::Requirement.new(">= 2.3.0")
