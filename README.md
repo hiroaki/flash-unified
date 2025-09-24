@@ -104,9 +104,9 @@ if (document.readyState === "loading") {
 // For verbose logs during development, pass true: initializeFlashMessageSystem(true)
 ```
 
-#### Propshaft / Sprockets
+#### Asset pipeline (Propshaft / Sprockets)
 
-This library ships as an ES Module. If you're not using Importmap, import it via an inline module script in your layout and initialize it:
+This library ships as an ES module. When using the asset pipeline (Propshaft / Sprockets), add an inline module script to your layout, import it via `asset_path`, and initialize it:
 
 ```erb
 <script type="module">

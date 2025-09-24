@@ -4,7 +4,7 @@ require "rails/generators/base"
 module FlashUnified
   module Generators
     class InstallGenerator < Rails::Generators::Base
-      desc "Copies FlashUnified javascript, view partials, locales and prints importmap instructions."
+      desc "Copies FlashUnified javascript, view partials, locales and prints setup instructions (Importmap / asset pipeline)."
 
       class_option :force, type: :boolean, default: false, desc: "Overwrite existing files"
 
@@ -46,12 +46,6 @@ module FlashUnified
 
           === FlashUnified installation instructions ===
 
-          What this generator installs
-          - JavaScript client: copied into `app/javascript/flash_unified` (skips unless `--force`).
-          - View partials: copied into `app/views/flash_unified` (skips unless `--force`).
-            - Core: `_templates.html.erb`, `_storage.html.erb`, `_global_storage.html.erb`, `_container.html.erb`, `_general_error_messages.html.erb`
-          - Locale files: any `config/locales/*.yml` from the gem are copied into your app's `config/locales` (skips unless `--force`).
-
           Importing the JavaScript
           - Importmap: add to `config/importmap.rb`:
 
@@ -60,26 +54,43 @@ module FlashUnified
             then initialize it in your JavaScript entrypoint (idempotent):
 
               import { initializeFlashMessageSystem } from "flash_unified";
-              addEventListener('DOMContentLoaded', () => initializeFlashMessageSystem());
-              addEventListener('turbo:load', () => initializeFlashMessageSystem());
+              if (document.readyState === "loading") {
+                document.addEventListener("DOMContentLoaded", initializeFlashMessageSystem);
+              } else {
+                initializeFlashMessageSystem();
+              }
 
-          - Propshaft/Sprockets: the engine adds its `app/javascript` to the asset paths so you can include the script with:
+          - Asset pipeline (Propshaft / Sprockets): the engine adds its `app/javascript` to the asset paths; import via an inline module script in your layout's <head>:
 
-              <%= javascript_include_tag "flash_unified/flash_unified" %>
+              <link rel="modulepreload" href="<%= asset_path('flash_unified/flash_unified.js') %>">
+              <script type="module">
+                import { initializeFlashMessageSystem } from "<%= asset_path('flash_unified/flash_unified.js') %>";
+                if (document.readyState === 'loading') {
+                  document.addEventListener('DOMContentLoaded', initializeFlashMessageSystem);
+                } else {
+                  initializeFlashMessageSystem();
+                }
+              </script>
 
           How to place partials in your layout
           - The gem's view helpers render engine partials. After running this generator you'll have the partials available under `app/views/flash_unified` and can customize them as needed.
 
-          Recommended layout snippet (inside `<body>`):
+          Recommended layout snippet (inside `<body>`, global helpers):
 
-            <%= flash_global_storage %>
-            <%= flash_container %>
-            <%= flash_templates %>
             <%= flash_general_error_messages %>
+            <%= flash_global_storage %>
+            <%= flash_templates %>
 
-          Notes
-          - The client JS expects a storage element with `id="flash-storage"` (the `_global_storage.html.erb` partial provides this). Do not rename this id unless you update the client code.
-          - Locale files are only copied if they do not already exist in the host app; with `--force` existing files are overwritten.
+          Place the visible container wherever messages should appear:
+
+            <%= flash_container %>
+
+          Embed per-response storage inside content (e.g. Turbo Frame responses):
+
+            <%= flash_storage %>
+
+          Documentation
+          - For full details and customization guidance, see README.md / README.ja.md in the gem.
 
         MSG
 

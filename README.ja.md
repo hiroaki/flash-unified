@@ -105,9 +105,9 @@ if (document.readyState === "loading") {
 }
 ```
 
-#### Propshaft / Sprockets
+#### アセットパイプライン（Propshaft / Sprockets）
 
-このライブラリは ES Module として提供されます。Propshaft/Sprockets 環境で Importmap を使わない場合は、レイアウトにインラインの module スクリプトで読み込んで初期化してください：
+このライブラリは ES Module として提供されます。アセットパイプライン（Propshaft / Sprockets）で利用する場合は、レイアウトに module スクリプトを記述し、`asset_path` 経由で読み込んで初期化してください：
 
 ```erb
 <script type="module">
