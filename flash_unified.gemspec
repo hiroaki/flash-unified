@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.description   = %q{Unified server/client flash messages for Rails with consistent templates—Turbo-ready, customizable, easy to integrate.}
   spec.homepage      = "https://github.com/hiroaki/flash-unified"
   spec.license       = "0BSD"
-  spec.required_ruby_version = Gem::Requirement.new(">= 2.3.0")
+  spec.required_ruby_version = Gem::Requirement.new(">= 3.2.0")
 
   #spec.metadata["allowed_push_host"] = "TODO: Set to 'http://mygemserver.com'"
 
@@ -26,4 +26,14 @@ Gem::Specification.new do |spec|
   spec.bindir        = "exe"
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
+
+  #
+  spec.add_dependency "rails", ">= 7.1"
+
+  #
+  spec.add_development_dependency "appraisal"
+  spec.add_development_dependency "capybara"
+  spec.add_development_dependency "cuprite"
+  spec.add_development_dependency "minitest"
+  spec.add_development_dependency "rake"
 end
