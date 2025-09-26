@@ -39,5 +39,15 @@ module Dummy
 
     # Don't generate system test files.
     config.generators.system_tests = nil
+
+    # Opt in to the Rails 8.1 `to_time` behavior change to silence the
+    # deprecation warning. Rails 8.1 changes how `to_time` preserves timezone
+    # information; explicitly setting `config.active_support.to_time_preserves_timezone = :zone`
+    # opts into the new behavior when supported.
+    begin
+      config.active_support.to_time_preserves_timezone = :zone
+    rescue NoMethodError
+      # Older Rails versions may not support this setting; ignore if absent.
+    end
   end
 end
