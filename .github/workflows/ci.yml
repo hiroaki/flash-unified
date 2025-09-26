@@ -82,6 +82,12 @@ jobs:
       - name: Install appraisal
         run: gem install appraisal
 
+      - name: Install dependencies (fresh)
+        run: |
+          bundle config set --local path 'vendor/bundle'
+          bundle config set --local without 'production'
+          bundle install --jobs 1 --retry 2
+
       - name: Install appraisal gemfiles
         run: |
           bundle config set --local path 'vendor/bundle'
