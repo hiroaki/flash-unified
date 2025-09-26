@@ -13,6 +13,9 @@ Gemfile.lock
 
 /test/reports/
 /test/tmp/
-/test/dummy/tmp/
-/test/dummy/log/
-
+/test/dummy/tmp/*
+!/test/dummy/tmp/.keep
+/test/dummy/log/*
+!/test/dummy/log/.keep
+/test/dummy/storage/*
+!/test/dummy/storage/.keep

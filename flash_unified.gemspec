@@ -36,5 +36,8 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "capybara"
   spec.add_development_dependency "cuprite"
   spec.add_development_dependency "minitest"
+  spec.add_development_dependency "puma", ">= 5.0"
   spec.add_development_dependency "rake"
+  spec.add_development_dependency "sprockets-rails"
+  spec.add_development_dependency "sqlite3", ">= 1.4"
 end
