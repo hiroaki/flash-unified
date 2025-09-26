@@ -105,4 +105,4 @@ jobs:
 
       - name: Run generator tests under appraisal
         run: |
-          bundle exec appraisal exec ${APPRAISAL} -- bundle exec rake test TEST=test/generators/install_generator_test.rb
+          bundle exec appraisal ${APPRAISAL} rake test TEST=test/generators/install_generator_test.rb
