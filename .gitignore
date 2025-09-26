@@ -8,4 +8,11 @@
 /tmp/
 
 Gemfile.lock
+/gemfiles/*.gemfile.lock
+/gemfiles/.bundle/
+
+/test/reports/
+/test/tmp/
+/test/dummy/tmp/
+/test/dummy/log/
 
