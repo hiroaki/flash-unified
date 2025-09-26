@@ -63,11 +63,11 @@ jobs:
     strategy:
       matrix:
         ruby: [3.2, 3.3]
-        rails: ["7.1.5.2", "7.2.2.2", "8.0.3"]
+        appraisal: ["rails-7.1", "rails-7.2", "rails-8.0"]
       # limit parallel matrix cells to avoid overwhelming rubygems.org
       max-parallel: 2
     env:
-      RAILS_VERSION: ${{ matrix.rails }}
+      APPRAISAL: ${{ matrix.appraisal }}
     steps:
       - uses: actions/checkout@v4
       - name: Setup Ruby
@@ -79,38 +79,24 @@ jobs:
       - name: Install bundler
         run: gem install bundler
 
-      - name: Prepare temporary Gemfile for CI (fresh)
-        run: |
-          # Work on a copy so we never rely on the repo's Gemfile.lock
-          cp Gemfile Gemfile.ci
-          # append a comment and the rails gem line using printf so we get real newlines
-          printf '\n# Added by CI for generator tests\n' >> Gemfile.ci
-          printf "gem 'rails', '%s', group: [:development, :test]\n" "${RAILS_VERSION}" >> Gemfile.ci
-          # ensure we don't accidentally use a checked-in Gemfile.lock
-          if [ -f Gemfile.lock ]; then rm -f Gemfile.lock || true; fi
+      - name: Install appraisal
+        run: gem install appraisal
 
-      - name: Compute Gemfile.ci hash
-        id: gemfile_hash
+      - name: Install appraisal gemfiles
         run: |
-          if [ -f Gemfile.ci ]; then echo "hash=$(sha1sum Gemfile.ci | awk '{print $1}')" >> "$GITHUB_OUTPUT"; else echo "hash=missing" >> "$GITHUB_OUTPUT"; fi
+          bundle config set --local path 'vendor/bundle'
+          bundle config set --local without 'production'
+          bundle exec appraisal install
 
-      - name: Cache Ruby gems (generator)
+      - name: Cache Ruby gems (generator appraisal)
         uses: actions/cache@v4
         with:
           path: vendor/bundle
-          key: ${{ runner.os }}-gems-${{ matrix.ruby }}-${{ matrix.rails }}-${{ steps.gemfile_hash.outputs.hash }}
+          key: ${{ runner.os }}-gems-${{ matrix.ruby }}-${{ matrix.appraisal }}
           restore-keys: |
-            ${{ runner.os }}-gems-${{ matrix.ruby }}-${{ matrix.rails }}-
+            ${{ runner.os }}-gems-${{ matrix.ruby }}-${{ matrix.appraisal }}-
             ${{ runner.os }}-gems-${{ matrix.ruby }}-
 
-      - name: Install dependencies (CI Gemfile, fresh)
+      - name: Run generator tests under appraisal
         run: |
-          export BUNDLE_GEMFILE=$(pwd)/Gemfile.ci
-          bundle config set --local path 'vendor/bundle'
-          bundle config set --local without 'production'
-          bundle install --jobs 1 --retry 2
-
-      - name: Run generator tests
-        run: |
-          export BUNDLE_GEMFILE=$(pwd)/Gemfile.ci
-          bundle exec rake test TEST=test/generators/install_generator_test.rb
+          bundle exec appraisal exec ${APPRAISAL} -- bundle exec rake test TEST=test/generators/install_generator_test.rb
