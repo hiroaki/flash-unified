@@ -1,24 +1,27 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Run dummy app system tests across Appraisals.
+# Run dummy app tests across Appraisals using rake tasks.
 # Usage:
-#   bin/run-dummy-tests [appraisal|all] [test_glob]
+#   bin/run-dummy-tests [appraisal|all] [suite]
+#   suite: system (default) | generators
 # Examples:
-#   bin/run-dummy-tests            # runs all appraisals, default glob: test/system/**/*_test.rb
-#   bin/run-dummy-tests rails-7.1  # run only rails-7.1
-#   bin/run-dummy-tests all "test/system/**/*_test.rb"
+#   bin/run-dummy-tests                     # runs system tests for all appraisals
+#   bin/run-dummy-tests rails-7.1           # system tests for only rails-7.1
+#   bin/run-dummy-tests all generators      # generator tests for all appraisals
 
 REQUESTED=${1:-all}
-TEST_GLOB=${2:-test/system/**/*_test.rb}
+SUITE=${2:-system}
 
 usage() {
   cat <<USAGE
-    Usage: $(basename "$0") [appraisal|all] [test_glob]
+    Usage: $(basename "$0") [appraisal|all] [suite]
+      suite: system (default) | generators
     Examples:
       $(basename "$0")
       $(basename "$0") rails-7.1
-      $(basename "$0") all "test/system/**/*_test.rb"
+      $(basename "$0") all
+      $(basename "$0") all generators
 USAGE
 }
 
@@ -26,6 +29,19 @@ if [[ "$REQUESTED" == "-h" || "$REQUESTED" == "--help" ]]; then
   usage
   exit 0
 fi
+
+# Validate suite
+case "$SUITE" in
+  system|generators)
+    ;;
+  *)
+    echo "Unknown suite: $SUITE" >&2
+    usage
+    exit 2
+    ;;
+esac
+
+TASK="test:$SUITE"
 
 # Read Appraisals from `bundle exec appraisal list`. Fail fast if the command isn't available or returns no appraisals.
 if ! command -v bundle >/dev/null 2>&1; then
@@ -66,7 +82,7 @@ if [[ "$REQUESTED" != "all" ]]; then
   fi
 fi
 
-echo "Running dummy system tests for appraisals: ${APPRAISALS[*]}"
+echo "Running dummy $SUITE tests for appraisals: ${APPRAISALS[*]}"
 
 for a in "${APPRAISALS[@]}"; do
   echo
@@ -75,8 +91,8 @@ for a in "${APPRAISALS[@]}"; do
   # echo "Preparing dummy DB for $a..."
   # bundle exec appraisal "$a" bash -lc "cd test/dummy && bundle exec rake db:drop db:create db:migrate RAILS_ENV=test"
 
-  echo "Running tests for $a (glob: $TEST_GLOB)..."
-  bundle exec appraisal "$a" rake test TEST="$TEST_GLOB"
+  echo "Running $SUITE tests for $a via 'rake ${TASK}'..."
+  bundle exec appraisal "$a" rake "${TASK}"
 
   echo "=== Finished $a ==="
 done

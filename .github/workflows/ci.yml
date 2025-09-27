@@ -54,7 +54,7 @@ jobs:
           bundle install --jobs 1 --retry 2
 
       - name: Run unit tests
-        run: bundle exec rake test TEST='test/{unit,lib}/**/*_test.rb'
+        run: bundle exec rake test:unit
 
   generate-appraisals:
     name: Generate Appraisals list
@@ -124,7 +124,7 @@ jobs:
 
       - name: Run generator tests under appraisal
         run: |
-          bundle exec appraisal ${APPRAISAL} rake test TEST=test/generators/install_generator_test.rb
+          bundle exec appraisal ${APPRAISAL} rake test:generators
 
   system-tests:
     name: System tests (Appraisal matrix)
@@ -166,4 +166,4 @@ jobs:
 
       - name: Run dummy system test under appraisal
         run: |
-          bundle exec appraisal ${APPRAISAL} rake test TEST='test/system/**/*_test.rb'
+          bundle exec appraisal ${APPRAISAL} rake test:system
