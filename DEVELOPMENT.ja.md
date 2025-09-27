@@ -13,7 +13,7 @@
 
 | 項目 | 状態/説明 | 参照/補足 |
 |------|-----------|-----------|
-| ユニットテスト | あり。例: `FlashUnified::Installer` の挙動、モジュールのスモークテスト | `test/unit`、`test/flash_unified_test.rb` |
+| ユニットテスト | あり。例: `FlashUnified::Installer` の挙動、モジュールのスモークテスト | `test/unit`、`test/unit/flash_unified_test.rb` |
 | ジェネレータテスト | あり（最小ケース） | `test/generators/install_generator_test.rb` |
 | システムテスト | あり（最小ケース）。現状は rack_test ドライバで JS 実行は cuprite を予定 | `test/system/dummy_home_test.rb`、`test/application_system_test_case.rb` |
 | JavaScript 単体テスト | 未導入 | 将来: jsdom + vitest 等を検討 |
@@ -49,6 +49,7 @@ bundle exec appraisal install
 ```bash
 bundle exec rake test:unit
 bin/run-dummy-tests
+bin/run-dummy-tests all generators
 ```
 
 備考:
@@ -66,15 +67,15 @@ bundle exec rake test:unit
 # ジェネレータテストのみ
 bin/run-dummy-tests all generators
 
-# ジェネレータテストのうち Rails 7.2 のみ
-bin/run-dummy-tests rails-7.2 generators
-bundle exec appraisal rails-7.2 rake test:generators
-
 # システムテストのみ
 bin/run-dummy-tests
 bin/run-dummy-tests all
 
-# システムテストのうち Rails 7.2 のみ:
+# 参考： ジェネレータテストのうち Rails 7.2 のみ
+bin/run-dummy-tests rails-7.2 generators
+bundle exec appraisal rails-7.2 rake test:generators
+
+# 参考： システムテストのうち Rails 7.2 のみ:
 bin/run-dummy-tests rails-7.2
 bundle exec appraisal rails-7.2 rake test:system
 

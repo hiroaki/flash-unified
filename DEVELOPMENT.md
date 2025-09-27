@@ -13,7 +13,7 @@ This guide helps new contributors get started quickly and safely. It summarizes 
 
 | Item | Status / description | References |
 |------|-----------------------|------------|
-| Unit tests | Present. Examples: `FlashUnified::Installer` behavior, module smoke test | `test/unit`, `test/flash_unified_test.rb` |
+| Unit tests | Present. Examples: `FlashUnified::Installer` behavior, module smoke test | `test/unit`, `test/unit/flash_unified_test.rb` |
 | Generator tests | Present (minimal) | `test/generators/install_generator_test.rb` |
 | System tests | Present (minimal). Currently uses rack_test driver; JS execution is out of scope | `test/system/dummy_home_test.rb`, `test/application_system_test_case.rb` |
 | JS unit tests | Not introduced | Consider jsdom + vitest when JS complexity grows |
@@ -63,18 +63,18 @@ Run suites separately for clarity and speed.
 # Unit only:
 bundle exec rake test:unit
 
-# Generators across all Appraisals:
+# Generators only:
 bin/run-dummy-tests all generators
-
-# Generators on Rails 7.2 only:
-bin/run-dummy-tests rails-7.2 generators
-bundle exec appraisal rails-7.2 rake test:generators
 
 # System only:
 bin/run-dummy-tests
 bin/run-dummy-tests all
 
-# System only on Rails 7.2:
+# Reference: Generators on Rails 7.2 only:
+bin/run-dummy-tests rails-7.2 generators
+bundle exec appraisal rails-7.2 rake test:generators
+
+# Reference: System only on Rails 7.2:
 bin/run-dummy-tests rails-7.2
 bundle exec appraisal rails-7.2 rake test:system
 
