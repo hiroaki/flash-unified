@@ -54,7 +54,30 @@ jobs:
           bundle install --jobs 1 --retry 2
 
       - name: Run unit tests
-        run: bundle exec rake test
+        run: bundle exec rake test TEST='test/{unit,lib}/**/*_test.rb'
+
+  generate-appraisals:
+    name: Generate Appraisals list
+    runs-on: ubuntu-latest
+    outputs:
+      appraisals: ${{ steps.generate.outputs.appraisals }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate appraisals JSON
+        id: generate
+        run: |
+          # parse Appraisals file for lines like: appraise 'rails-7.1' do
+          if [ ! -f Appraisals ]; then
+            echo "Appraisals file not found" >&2
+            exit 2
+          fi
+          # Extract the second single-quoted field from lines starting with appraise
+          APP_LIST=$(awk -F"'" '/^appraise[[:space:]]+('\''|")/ {printf "%s\"%s\"",sep,$2; sep=","} END{print ""}' Appraisals)
+          if [ -z "$APP_LIST" ]; then
+            echo "No appraisals found in Appraisals file" >&2
+            exit 2
+          fi
+          echo "appraisals=[$APP_LIST]" >> "$GITHUB_OUTPUT"
 
   generator-tests:
     name: Generator tests (Rails matrix, fresh resolve)
@@ -63,9 +86,10 @@ jobs:
     strategy:
       matrix:
         ruby: [3.2, 3.3]
-        appraisal: ["rails-7.1", "rails-7.2", "rails-8.0"]
+        appraisal: ${{ fromJson(needs.generate-appraisals.outputs.appraisals) }}
       # limit parallel matrix cells to avoid overwhelming rubygems.org
       max-parallel: 2
+    needs: generate-appraisals
     env:
       APPRAISAL: ${{ matrix.appraisal }}
     steps:
@@ -79,9 +103,6 @@ jobs:
       - name: Install bundler
         run: gem install bundler
 
-      - name: Install appraisal
-        run: gem install appraisal
-
       - name: Install dependencies (fresh)
         run: |
           bundle config set --local path 'vendor/bundle'
@@ -90,8 +111,6 @@ jobs:
 
       - name: Install appraisal gemfiles
         run: |
-          bundle config set --local path 'vendor/bundle'
-          bundle config set --local without 'production'
           bundle exec appraisal install
 
       - name: Cache Ruby gems (generator appraisal)
@@ -106,3 +125,45 @@ jobs:
       - name: Run generator tests under appraisal
         run: |
           bundle exec appraisal ${APPRAISAL} rake test TEST=test/generators/install_generator_test.rb
+
+  system-tests:
+    name: System tests (Appraisal matrix)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        ruby: [3.2]
+        appraisal: ${{ fromJson(needs.generate-appraisals.outputs.appraisals) }}
+      max-parallel: 2
+    needs: generate-appraisals
+    env:
+      APPRAISAL: ${{ matrix.appraisal }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          cache-bundle: true
+
+      - name: Install bundler
+        run: gem install bundler
+
+      - name: Install dependencies (fresh)
+        run: |
+          bundle config set --local path 'vendor/bundle'
+          bundle config set --local without 'production'
+          bundle install --jobs 1 --retry 2
+
+      - name: Install appraisal gemfiles
+        run: |
+          bundle exec appraisal install
+
+      - name: Prepare dummy DB under appraisal
+        run: |
+          # Prepare the dummy app database inside the appraisal context
+          bundle exec appraisal ${APPRAISAL} bash -lc "cd test/dummy && bundle exec rake db:drop db:create db:migrate RAILS_ENV=test"
+
+      - name: Run dummy system test under appraisal
+        run: |
+          bundle exec appraisal ${APPRAISAL} rake test TEST='test/system/**/*_test.rb'
