@@ -1,108 +1,109 @@
-## Development guide
+# Developer Guide
 
-This document is written for developers who are new to this project. It explains how to set up the development environment, the test strategy (unit / generator / E2E), how to use a sandbox for verification, and a recommended day-to-day workflow. Brief background and operational tips are included near the end.
+This guide helps new contributors get started quickly and safely. It summarizes the current test layout, CI, helper scripts, and frequently used commands. The focus is on clarity and practical steps.
 
-## Summary
+## 1. Current snapshot
 
-- Unit tests: cover library logic and `FlashUnified::Installer` (no Rails required).
-- Generator verification: test file generation in `test/generators/` or by manual sandbox checks (Rails required).
-- E2E (integration): to automatically verify that the gem shows flashes when installed into an app, create a sandbox app and run Capybara/system tests there.
+### Supported matrix
 
-## Quick setup
+- Ruby: 3.2, 3.3
+- Rails: 7.1.5.2, 7.2.2.2, 8.0.3
 
-1. Install dependencies:
+### Testing & tooling
 
-```bash
-bundle install
-```
+| Item | Status / description | References |
+|------|-----------------------|------------|
+| Unit tests | Present. Examples: `FlashUnified::Installer` behavior, module smoke test | `test/unit`, `test/unit/flash_unified_test.rb` |
+| Generator tests | Present (minimal) | `test/generators/install_generator_test.rb` |
+| System tests | Present (minimal). Currently uses rack_test driver; JS execution is out of scope | `test/system/dummy_home_test.rb`, `test/application_system_test_case.rb` |
+| JS unit tests | Not introduced | Consider jsdom + vitest when JS complexity grows |
+| Multi-Rails compatibility | Appraisals in place (Rails 7.1.5.2 / 7.2.2.2 / 8.0.3) | `Appraisals`, `bundle exec appraisal ...` |
+| CI (GitHub Actions) | In place | `.github/workflows/ci.yml` (jobs: unit-tests〈Ruby 3.2/3.3〉, generate-appraisals, generator-tests〈Appraisals matrix〉, system-tests〈Appraisals matrix〉) |
+| Sandbox | Generate local apps for quick checks (Importmap/Propshaft/Sprockets) | `bin/sandbox` (templates: `sandbox/templates/*.rb`) |
+| Helper script | Run system / generator tests across Appraisals | `bin/run-dummy-tests` |
 
-2. Run unit tests (fast, Rails not required):
+## 2. Repository layout
 
-```bash
-bundle exec rake test TEST=test/unit/installer_test.rb
-# or run the whole suite
-bundle exec rake test
-```
+| Item | Role / notes | Main location |
+|------|--------------|---------------|
+| Engine core | Rails engine initialization and copy logic | `lib/flash_unified/` (e.g., `engine.rb`, `installer.rb`) |
+| Views / JS / locales (distributables) | Partials, client JS, locale files copied to host apps | `app/views/flash_unified/*`<br>`app/javascript/flash_unified/flash_unified.js`<br>`config/locales/http_status_messages.*.yml` |
+| View helper | Helpers to render engine partials | `app/helpers/flash_unified/view_helper.rb` |
+| Tests | Unit / generator / system layers | `test/unit`, `test/generators`, `test/system`, `test/test_helper.rb` |
+| Dummy app | Minimal Rails app for test boot/reproducibility | `test/dummy` |
+| CI | GitHub Actions workflow | `.github/workflows/ci.yml` |
+| Appraisals | Rails version matrix definition | `Appraisals` |
+| Sandbox templates | Local app scaffolding | `bin/sandbox`, `sandbox/templates/*.rb` |
 
-Note: `rake test` excludes `test/dummy/**` and `sandbox/*/test/**` by default so contributors don't need a booted Rails app for normal test runs.
+## 3. First-time setup
 
-## Recommended workflow
-
-Split development and verification into clear stages for speed and clarity.
-
-1) Fast edit loop — logic changes and unit tests
-
-- Edit: make changes in `lib/`.
-- Run: `bundle exec rake test TEST=test/unit/...` (no Rails required).
-
-2) Generator verification — confirm generated files
-
-- Purpose: ensure the install generator outputs the expected partials, templates, and locale files.
-- Run generator tests under `test/generators/` (requires Rails), or manually run the generator in a sandbox and inspect the generated files.
-
-3) E2E / integration — verify the gem in a host app
-
-- Purpose: verify the gem, when installed in a real app, displays Flash messages as expected.
-- Recommended approach: create a sandbox Rails app that references the local gem using `path:` and add Capybara/system tests to that sandbox. Automate sandbox bootstrap and run system tests in CI as a separate job if needed.
-
-## Running generator tests locally
-
-Generator tests under `test/generators/` use `Rails::Generators::TestCase`. To run them locally, add Rails to your development/test group:
-
-```ruby
-# Gemfile (example)
-group :development, :test do
-  gem 'rails', '~> 7.1'
-end
-```
-
-Then:
+1) Install dependencies
 
 ```bash
 bundle install
-bundle exec rake test TEST=test/generators/install_generator_test.rb
+bundle exec appraisal install
 ```
 
-## Sandbox + E2E (Capybara) guidance
-
-Purpose: run integration tests that exercise the gem inside a host application.
-
-Basic procedure:
-
-1. Create a sandbox app (use `bin/sandbox` if available or run `rails new`).
-2. In the sandbox `Gemfile`, reference the local gem:
-
-```ruby
-gem 'flash_unified', path: '../../'
-```
-
-3. Install and generate:
+2) Quick smoke run
 
 ```bash
-bundle install
-bin/rails generate flash_unified:install
+bundle exec rake test:unit
+bin/run-dummy-tests
 ```
-
-4. Run system tests (example):
-
-```bash
-bundle exec rake test:system
-```
-
-Test idea: have a controller action that sets `flash[:notice] = 'OK'` and redirects; use Capybara to visit the page and `assert_text 'OK'`. For asynchronous rendering, use `have_selector` / `have_text` with Capybara's waiting behavior.
 
 Notes:
-- Do not normally commit sandbox apps to the main branch. Use temporary branches or local directories for sandbox testing.
-- When a bug is found in the sandbox, fix the gem source (in this repo), commit/PR the change, then rebuild the sandbox and re-run tests to verify.
+- Tests requiring Rails variants run via Appraisals. `bin/run-dummy-tests` is a convenience wrapper to execute system / generator tests across defined Appraisals.
+- Current system tests run with rack_test (no JavaScript). For scenarios requiring JS, we plan to introduce a headless driver like Cuprite.
 
-## CI guidance (concise)
+## 4. How to run tests (by purpose)
 
-- Keep unit tests fast and runnable via `rake test`.
-- Run generator integration tests in CI jobs that add Rails to the `development, test` group.
-- Run sandbox E2E tests in a separate CI job (resource-heavy) and/or schedule them (nightly) if you want broader coverage.
+Run suites separately for clarity and speed.
 
-## Short tips and background
+```
+# Unit only:
+bundle exec rake test:unit
 
-- Installer extraction: moving file operations into `FlashUnified::Installer` enables fast, Rails-free unit testing and speeds up development loops.
-- `test/dummy`: intended as a minimal placeholder for manual generator checks; it's excluded from automated `rake test` runs.
-- Importmap: the generator prints recommended pins but does not modify `config/importmap.rb` automatically to avoid surprising host apps.
+# Generators only:
+bin/run-dummy-tests all generators
+
+# System only:
+bin/run-dummy-tests
+bin/run-dummy-tests all
+
+# Reference: Generators on Rails 7.2 only:
+bin/run-dummy-tests rails-7.2 generators
+bundle exec appraisal rails-7.2 rake test:generators
+
+# Reference: System only on Rails 7.2:
+bin/run-dummy-tests rails-7.2
+bundle exec appraisal rails-7.2 rake test:system
+
+# Reference: single-file run (no Rails)
+bundle exec rake test TEST=test/unit/target_test.rb
+
+# Reference: single-file run (requires Rails)
+bundle exec appraisal rails-7.2 rake test TEST=test/system/target_test.rb
+```
+
+## 5. Dummy app vs Sandbox
+
+- Dummy app (`test/dummy`)
+  - Purpose: reproducibility for automated tests.
+  - Used by CI as the execution baseline.
+
+- Sandbox (`bin/sandbox`)
+  - Purpose: quick, disposable local experiments (Importmap/Propshaft/Sprockets).
+  - Examples:
+    ```
+    bin/sandbox importmap
+    bin/sandbox propshaft --scaffold
+    bin/sandbox sprockets --path ../..
+    ```
+  - Follow the script output to `bin/rails server` and verify in a browser.
+
+## A. Outlook
+
+- Enrich generator tests (assert duplicate-prevention and content details).
+- Introduce a minimal JS unit-test layer when it adds clear value (e.g., jsdom + vitest).
+- Add representative system scenarios (Turbo Frame/Stream basics) as the next step.
+

@@ -10,10 +10,6 @@ module FlashUnified
 
       def copy_javascript
         say_status :copy, "app/javascript/flash_unified"
-        source = File.expand_path(
-          File.join("..", "..", "..", "..", "app", "javascript", "flash_unified"),
-          __dir__
-        )
         installer = FlashUnified::Installer.new(source_root: File.expand_path('../../../../', __dir__), target_root: Dir.pwd, force: options[:force])
         result = installer.copy_javascript
         case result

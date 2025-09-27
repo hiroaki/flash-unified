@@ -13,6 +13,7 @@ require "action_controller/railtie"
 require "action_view/railtie"
 # require "action_cable/engine"
 require "rails/test_unit/railtie"
+require "sprockets/railtie"
 
 # Require the gems listed in Gemfile, including any gems
 # you've limited to :test, :development, or :production.
@@ -21,12 +22,12 @@ Bundler.require(*Rails.groups)
 module Dummy
   class Application < Rails::Application
     # Initialize configuration defaults for originally generated Rails version.
-    config.load_defaults 8.0
+    config.load_defaults 7.1
 
     # Please, add to the `ignore` list any other `lib` subdirectories that do
     # not contain `.rb` files, or that should not be reloaded or eager loaded.
     # Common ones are `templates`, `generators`, or `middleware`, for example.
-    config.autoload_lib(ignore: %w[assets tasks])
+    config.autoload_lib(ignore: %w(assets tasks))
 
     # Configuration for the application, engines, and railties goes here.
     #
@@ -38,5 +39,15 @@ module Dummy
 
     # Don't generate system test files.
     config.generators.system_tests = nil
+
+    # Opt in to the Rails 8.1 `to_time` behavior change to silence the
+    # deprecation warning. Rails 8.1 changes how `to_time` preserves timezone
+    # information; explicitly setting `config.active_support.to_time_preserves_timezone = :zone`
+    # opts into the new behavior when supported.
+    begin
+      config.active_support.to_time_preserves_timezone = :zone
+    rescue NoMethodError
+      # Older Rails versions may not support this setting; ignore if absent.
+    end
   end
 end

@@ -1,93 +1,109 @@
-# 開発者向けドキュメント
+# 開発者向けガイド
 
-このドキュメントは、新しくこのプロジェクトに参加する開発者向けに、開発環境のセットアップ、テスト戦略（ユニット / ジェネレータ / E2E）、Sandbox の使い方、および日常的なワークフローを分かりやすくまとめたものです。詳細な背景や運用上の細かい注意点は後半の短い TIPS にまとめています。
+この文書は、テスト構成、CI、周辺スクリプトについて、現在の状況を整理したものです。
 
-## 要約
+## 1. 現状サマリー
 
-- ユニットテスト: `lib/` のロジックや `FlashUnified::Installer` の動作はユニットテストでカバーします（Rails 不要）。
-- ジェネレータ検証: ファイル生成そのもののテストは `test/generators/` や手動の確認で行います（Rails が必要です）。
-- E2E（実動確認）: gem をホストアプリに組み込んだ状態で Flash の実表示を自動検証するには、Sandbox を用意して Capybara 等の system テストを実行するのが望ましいです。
+### サポート対象
 
-## セットアップ
+- Ruby: 3.2, 3.3
+- Rails: 7.1.5.2, 7.2.2.2, 8.0.3
 
-1. 依存をインストール:
+### テスト・ツール
 
-```bash
-bundle install
-```
+| 項目 | 状態/説明 | 参照/補足 |
+|------|-----------|-----------|
+| ユニットテスト | あり。例: `FlashUnified::Installer` の挙動、モジュールのスモークテスト | `test/unit`、`test/unit/flash_unified_test.rb` |
+| ジェネレータテスト | あり（最小ケース） | `test/generators/install_generator_test.rb` |
+| システムテスト | あり（最小ケース）。現状は rack_test ドライバで JS 実行は cuprite を予定 | `test/system/dummy_home_test.rb`、`test/application_system_test_case.rb` |
+| JavaScript 単体テスト | 未導入 | 将来: jsdom + vitest 等を検討 |
+| 複数 Rails 互換性 | Appraisals 導入済み | `Appraisals`、`bundle exec appraisal ...` |
+| CI（GitHub Actions） | 導入済み | `.github/workflows/ci.yml` |
+| サンドボックス | 手元検証用アプリを生成（Importmap/Propshaft/Sprockets） | `bin/sandbox`（テンプレ: `sandbox/templates/*.rb`） |
+| 補助スクリプト | Appraisals を横断して system / generators テストを実行 | `bin/run-dummy-tests` |
 
-2. ユニットテストの実行（例）:
+## 2. ファイル構成
 
-```bash
-bundle exec rake test TEST=test/unit/installer_test.rb
-# またはスイート全体
-bundle exec rake test
-```
+| 項目 | 役割/説明 | 主な場所 |
+|------|-----------|-----------|
+| エンジン本体 | Rails エンジンの核（初期化/コピー処理など） | `lib/flash_unified/`（例: `engine.rb`, `installer.rb`） |
+| ビュー/JS/ロケール（配布物） | ホストアプリへ配布するテンプレート/JS/翻訳 | `app/views/flash_unified/*`<br>`app/javascript/flash_unified/flash_unified.js`<br>`config/locales/http_status_messages.*.yml` |
+| ビュー・ヘルパ | レイアウトやビューで呼び出すヘルパ | `app/helpers/flash_unified/view_helper.rb` |
+| テスト | ユニット/ジェネレータ/システムの各レイヤ | `test/unit`、`test/generators`、`test/system`、`test/test_helper.rb` |
+| ダミーアプリ | テスト起動・再現性確保用の最小 Rails アプリ | `test/dummy` |
+| CI | GitHub Actions ワークフロー | `.github/workflows/ci.yml` |
+| Appraisals | Rails バージョン行列の定義 | `Appraisals` |
+| サンドボックス雛形 | 手元検証用アプリの生成スクリプト/テンプレート | `bin/sandbox`、`sandbox/templates/*.rb` |
 
-注意: `rake test` はデフォルトで `test/dummy/**` と `sandbox/*/test/**` を除外しています。つまり通常のテスト実行は Rails を必要としないユニットテストだけを対象にしています。
+## 3. 開発セットアップ
 
-## 推奨ワークフロー
-
-目的ごとに作業手順を分けることで、効率的に開発と検証が行えます。
-
-1) 速いループ — ロジック修正とユニットテスト
-
-- 編集: `lib/` の実装を修正
-- 実行: `bundle exec rake test TEST=test/unit/...`（Rails 不要）
-
-2) ジェネレータ検証 — 生成物の確認
-
-- 目的: ジェネレータが正しい partial/template/locale を出力するかを確認。
-- 方法: `test/generators/` のテストを使う（Rails が必要）か、手動で sandbox に対して `bin/rails generate flash_unified:install` を実行して生成物を目視確認します。
-
-3) E2E/統合テスト — 実際に表示されるかの検証
-
-- 目的: gem をインストールしたホストアプリで Flash が正しく表示されることを検証。
-- 方法: Sandbox を作成して `Gemfile` に `gem 'flash_unified', path: '../../'` を追加し、Capybara を使った system テストを sandbox 側に置いて実行するのが実用的です（CI の別ジョブで自動化可能）。
-
-## ジェネレータ統合テスト（ローカル実行）
-
-テストは `test/generators/` に置かれ、`Rails::Generators::TestCase` を使います。ローカルで実行する場合は `:development, :test` グループに Rails を追加してください。
-
-```ruby
-# Gemfile (例)
-group :development, :test do
-  gem "rails", "~> 7.1"
-end
-```
+1) 依存のインストール
 
 ```bash
 bundle install
-bundle exec rake test TEST=test/generators/install_generator_test.rb
+bundle exec appraisal install
 ```
 
-## Sandbox と E2E（Capybara）の方針
+2) 動作確認
 
-目的: gem を組み込んだ実アプリでの表示を自動化して検証する。手順は次の通りです。
-
-1. Sandbox を作る（既存の `bin/sandbox` を使うか手動で `rails new`）
-2. Sandbox の `Gemfile` にローカル参照を追加:
-
-```ruby
-gem 'flash_unified', path: '../../'
+```bash
+bundle exec rake test:unit
+bin/run-dummy-tests
+bin/run-dummy-tests all generators
 ```
 
-3. `bundle install` → `bin/rails generate flash_unified:install` → `bundle exec rake test:system`（Capybara の system tests を実行）
+備考:
+- Rails が必要なテストは Appraisals を使って実行します。 `bin/run-dummy-tests` は各バージョンの Rails を用いて system / generators テストを走らせるためのバッチスクリプトです。
+- システムテストはまだ整備されていません。現在は Capybara との接続を確認している段階で rack_test ドライバで動いています。システムテストでは JavaScript を動かす必要があるため、ドライバーには cuprite を導入予定です。
 
-テスト例（ざっくり）: コントローラで `redirect_to ..., flash: { notice: 'ok' }` を返して、Capybara でページを開き `assert_text 'ok'` を確認します。非同期表示の待機は Capybara の `have_selector` / `have_text` を利用してください。
+## 4. テストの実行方法
 
-注意事項:
-- Sandbox は通常コミットしないでください。確認用に一時的に作るか、専用のブランチに置く運用がおすすめです。
-- Sandbox で修正点が見つかったら、修正は gem のコード側（このリポジトリの `lib/` 等）に反映してコミットし、その後 Sandbox を再構築して検証する流れにしてください。
+全体をまとめて実行するテストは未整備です。次のとおり、単位ごとに実行してください。
 
-## CI に関する簡潔な方針
+```
+# ユニットテストのみ
+bundle exec rake test:unit
 
-- ユニットテストは軽量に保ち、`rake test` で速く回す。
-- ジェネレータ統合テストは CI の別ジョブで Rails を追加して実行する。
-- E2E（Sandbox + Capybara）はリソース的に重いため、CI では必要に応じて別ジョブで定期実行または PR 必要時のみ実行するのが現実的です。
+# ジェネレータテストのみ
+bin/run-dummy-tests all generators
 
-## 短い TIPS と背景
+# システムテストのみ
+bin/run-dummy-tests
+bin/run-dummy-tests all
 
-- Installer 抽出: ファイル操作を `FlashUnified::Installer` に切り出すことで、Rails を読み込まないユニットテストが可能になり、開発のループを高速化できます。
-- `test/dummy`: ジェネレータの出力を手動で確認するための最小アプリ置き場です。`rake test` から除外しているため、自動テストはここに置きません。
-- Importmap: ジェネレータは `config/importmap.rb` を自動編集しません。自動編集はホストアプリに驚きを与えるため避けています。
+# 参考： ジェネレータテストのうち Rails 7.2 のみ
+bin/run-dummy-tests rails-7.2 generators
+bundle exec appraisal rails-7.2 rake test:generators
+
+# 参考： システムテストのうち Rails 7.2 のみ:
+bin/run-dummy-tests rails-7.2
+bundle exec appraisal rails-7.2 rake test:system
+
+# 参考: 個別ファイルの実行（ Rails 不要なもの）
+bundle exec rake test TEST=test/unit/target_test.rb
+
+# 参考: 個別ファイルの実行（ Rails を要するもの）
+bundle exec appraisal rails-7.2 rake test TEST=test/system/target_test.rb
+```
+
+## 5. ダミーアプリとサンドボックス
+
+- ダミーアプリ（`test/dummy`）
+  - 目的: 自動テストの再現性を高める固定資産。
+  - CI でもここを前提に実行されます。
+
+- サンドボックス（`bin/sandbox`）
+  - 目的: 手元での素早い実験（Importmap/Propshaft/Sprockets の違いを検証）。
+  - 例:
+    ```
+    bin/sandbox importmap
+    bin/sandbox propshaft --scaffold
+    bin/sandbox sprockets --path ../..
+    ```
+  - 生成後の案内に従って `bin/rails server` で起動できます。
+
+## A. 今後の展望
+
+- ジェネレータテストの拡充（重複挿入の厳密検証、出力内容の詳細比較）。
+- 最小限の JS ユニットテスト（必要になった時点で導入: jsdom+vitest 等）。
+- システムテストのシナリオ追加（Turbo Frame/Stream を用いた代表ケース）。
