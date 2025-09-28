@@ -2,8 +2,8 @@
 
 source "https://rubygems.org"
 
-gem "turbo-rails"
 gem "rails", "7.1.5.2"
+gem "turbo-rails"
 
 group :development, :test do
   gem "debug", platforms: [:mri, :windows]
