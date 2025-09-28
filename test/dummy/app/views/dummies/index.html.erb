@@ -1,2 +1,22 @@
 <h1>Dummies#index</h1>
 <p>Find me in app/views/dummies/index.html.erb</p>
+
+<div data-testid="flash-message-display-here" style="background-color: #9999ff">
+  <%= flash_container %>
+</div>
+
+<div data-testid="link-to-controller-here">
+  <h2>Turbo Drive</h2>
+  <%= link_to "Success flash", success_dummies_path, data: { turbo: true } %> |
+  <%= link_to "Failure flash", failure_dummies_path, data: { turbo: true } %>
+
+  <h2>Turbo Frame</h2>
+  <%= link_to "Success (frame)", success_dummies_path, data: { turbo_frame: "dummies-frame" } %> |
+  <%= link_to "Failure (frame)", failure_dummies_path, data: { turbo_frame: "dummies-frame" } %>
+</div>
+
+<%= turbo_frame_tag "dummies-frame" do %>
+  <div data-testid="flash-data-storage-here">
+    <%= flash_storage %>
+  </div>
+<% end %>

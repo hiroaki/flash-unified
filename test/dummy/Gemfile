@@ -27,3 +27,5 @@ group :development do
   # gem "spring"
 end
 
+gem "turbo-rails"
+gem "flash_unified", path: "../../"
