@@ -54,7 +54,6 @@ bin/run-dummy-tests all generators
 
 備考:
 - Rails が必要なテストは Appraisals を使って実行します。 `bin/run-dummy-tests` は各バージョンの Rails を用いて system / generators テストを走らせるためのバッチスクリプトです。
-- システムテストはまだ整備されていません。現在は Capybara との接続を確認している段階で rack_test ドライバで動いています。システムテストでは JavaScript を動かす必要があるため、ドライバーには cuprite を導入予定です。
 
 ## 4. テストの実行方法
 
@@ -84,6 +83,13 @@ bundle exec rake test TEST=test/unit/target_test.rb
 
 # 参考: 個別ファイルの実行（ Rails を要するもの）
 bundle exec appraisal rails-7.2 rake test TEST=test/system/target_test.rb
+```
+
+システムテストで JavaScript が必要なものは Capybara のドライバーに cuprite を使用しています。そのため実行環境に Chrome ブラウザが必要です。
+
+cuprite の設定として、環境変数に `HEADLESS` に `0` をセットすると、ヘッドレス・モードを解除して実行します。また `SLOWMO` に秒数をセットすると、ステップごとにその秒数のディレイが入ります。これらを合わせて指定すると、ブラウザの実際の操作の様子を観察できます：
+```
+HEADLESS=0 SLOWMO=0.3 bin/run-dummy-tests rails-7.2
 ```
 
 ## 5. ダミーアプリとサンドボックス

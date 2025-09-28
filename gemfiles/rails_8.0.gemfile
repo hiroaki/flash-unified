@@ -3,6 +3,12 @@
 source "https://rubygems.org"
 
 gem "rails", "8.0.3"
+gem "turbo-rails"
 gem "sqlite3", ">= 2.1"
+
+group :development, :test do
+  gem "debug", platforms: [:mri, :windows]
+  gem "tzinfo-data", platforms: [:windows, :jruby]
+end
 
 gemspec path: "../"
