@@ -53,7 +53,6 @@ bin/run-dummy-tests
 
 Notes:
 - Tests requiring Rails variants run via Appraisals. `bin/run-dummy-tests` is a convenience wrapper to execute system / generator tests across defined Appraisals.
-- Current system tests run with rack_test (no JavaScript). For scenarios requiring JS, we plan to introduce a headless driver like Cuprite.
 
 ## 4. How to run tests (by purpose)
 
@@ -83,6 +82,14 @@ bundle exec rake test TEST=test/unit/target_test.rb
 
 # Reference: single-file run (requires Rails)
 bundle exec appraisal rails-7.2 rake test TEST=test/system/target_test.rb
+```
+
+For system tests that require JavaScript, the Capybara driver uses cuprite, so a Chrome browser must be available in your environment.
+
+With cuprite, if you set the environment variable `HEADLESS=0`, tests will run in non-headless mode. You can also set `SLOWMO` to a number of seconds to add a delay between steps. Combining these allows you to observe browser actions visually:
+
+```
+HEADLESS=0 SLOWMO=0.3 bin/run-dummy-tests rails-7.2
 ```
 
 ## 5. Dummy app vs Sandbox
