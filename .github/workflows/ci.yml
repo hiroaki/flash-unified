@@ -159,11 +159,6 @@ jobs:
         run: |
           bundle exec appraisal install
 
-      - name: Prepare dummy DB under appraisal
-        run: |
-          # Prepare the dummy app database inside the appraisal context
-          bundle exec appraisal ${APPRAISAL} bash -lc "cd test/dummy && bundle exec rake db:drop db:create db:migrate RAILS_ENV=test"
-
       - name: Run dummy system test under appraisal
         run: |
           bundle exec appraisal ${APPRAISAL} rake test:system
