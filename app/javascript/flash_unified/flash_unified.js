@@ -315,25 +315,32 @@ function createFlashMessageNode(type, message) {
 }
 
 function handleFlashErrorStatus(status) {
-  if (anyFlashStorageHasMessage()) {
+  // If any flash storage already contains messages, do not override it
+  if (anyFlashStorageHasMessage()) return;
+
+  // Determine lookup key: 'network' or the numeric status string
+  let key;
+  if (status === 'network') {
+    key = 'network';
+  } else if (!status || status < 400) {
     return;
+  } else {
+    key = String(status);
   }
 
-  if (!status || status < 400) return;
-
+  // If the visible container already has children, avoid inserting duplicates
   const container = document.querySelector('[data-flash-message-container]');
   if (container && container.children.length > 0) return;
 
   const generalerrors = document.getElementById('general-error-messages');
-  let message = null;
-  if (generalerrors && status >= 400) {
-    const key = String(status);
-    const li = generalerrors.querySelector(`li[data-status="${key}"]`);
-    if (li) message = li.textContent.trim();
+  if (!generalerrors) {
+    console.error('[FlashMessage] No general error messages element found');
+    return;
   }
 
-  if (message) {
-    appendMessageToStorage(message, 'alert');
+  const li = generalerrors.querySelector(`li[data-status="${key}"]`);
+  if (li) {
+    appendMessageToStorage(li.textContent.trim(), 'alert');
   } else {
     console.error(`[FlashMessage] No error message defined for status: ${status}`);
   }
@@ -349,8 +356,6 @@ function anyFlashStorageHasMessage() {
   }
   return false;
 }
-
-//
 
 // Handle a payload of messages and render them.
 // Accepts either an array of { type, message } or an object { messages: [...] }.
