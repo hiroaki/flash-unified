@@ -159,12 +159,17 @@ jobs:
         run: |
           bundle exec appraisal install
 
-      - name: Check installed browser
+      - name: Check installed browser (install if missing)
         run: |
           echo "which chrome/google-chrome chromium chromium-browser:"
           which google-chrome-stable || which google-chrome || which chrome || which chromium-browser || which chromium || true
           echo "versions:"
           google-chrome-stable --version 2>/dev/null || google-chrome --version 2>/dev/null || chrome --version 2>/dev/null || chromium-browser --version 2>/dev/null || chromium --version 2>/dev/null || echo "no chrome/chromium found"
+          if ! (which google-chrome-stable || which google-chrome || which chrome || which chromium-browser || which chromium); then
+            echo "Installing chromium..."
+            sudo apt-get update -y
+            sudo apt-get install -y chromium-browser --no-install-recommends
+          fi
 
       - name: Run dummy system test under appraisal
         run: |
