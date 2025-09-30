@@ -246,24 +246,16 @@ function initializeFlashMessageSystem(debugFlag = false) {
     });
   })();
 
-  (function() {
-    let domLoaded = false;
+  // 初期描画: DOM 準備完了時に一度だけ実行 / Initial render once on DOM ready
+  if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function() {
-      if (domLoaded) return;
-      domLoaded = true;
-      debugLog('DOMContentLoaded (initial load)');
+      debugLog('DOMContentLoaded');
       renderFlashMessages();
-    });
-
-    // If the document is already loaded (e.g. script loaded late), run once
-    if (document.readyState === "complete" || document.readyState === "interactive") {
-      if (!domLoaded) {
-        domLoaded = true;
-        debugLog('DOMContentLoaded (late init)');
-        renderFlashMessages();
-      }
-    }
-  })();
+    }, { once: true });
+  } else {
+    debugLog('DOMContentLoaded (immediate)');
+    renderFlashMessages();
+  }
 }
 
 /* フラッシュ・メッセージの表示をクリアします。
