@@ -117,6 +117,13 @@ function renderFlashMessages() {
   */
 function appendMessageToStorage(message, type = 'alert') {
   const storageContainer = document.getElementById("flash-storage");
+  if (!storageContainer) {
+    console.error('[FlashUnified] #flash-storage not found. Define <div id="flash-storage" style="display:none"></div> in layout.');
+    // TODO: あるいは自動生成して document.body.appendChild しますか？
+    // ユーザの目に見えない部分で要素が増えることを避けたいと考え、警告に留めています。
+    // 下で storage を生成する部分は、ユーザが設定するコンテナの中なので問題ありません。
+    return;
+  }
   let storage = storageContainer.querySelector('[data-flash-storage]');
   if (!storage) {
     storage = document.createElement('div');
@@ -182,7 +189,7 @@ function initializeFlashMessageSystem(debugFlag = false) {
       // fetchResponse が undefined の場合は、ネットワーク断やプロキシによる遮断など、
       // サーバーに到達していない可能性があるため、その場合はネットワークエラーとして扱います。
       handleFlashErrorStatus('network');
-      console.warn('[FlashMessage] No response received from server. Possible network or proxy error.');
+      console.warn('[FlashUnified] No response received from server. Possible network or proxy error.');
     } else {
       handleFlashErrorStatus(res.statusCode);
     }
@@ -205,7 +212,7 @@ function initializeFlashMessageSystem(debugFlag = false) {
     if (message) {
       appendMessageToStorage(message, 'alert');
     } else {
-      console.error('[FlashMessage] No error message defined for network error');
+      console.error('[FlashUnified] No error message defined for network error');
     }
 
     renderFlashMessages();
@@ -221,7 +228,7 @@ function initializeFlashMessageSystem(debugFlag = false) {
     try {
       handleFlashPayload(event.detail);
     } catch (e) {
-      console.error('[FlashMessage] Failed to handle custom payload', e);
+      console.error('[FlashUnified] Failed to handle custom payload', e);
     }
   });
 
@@ -296,14 +303,22 @@ function createFlashMessageNode(type, message) {
   const templateId = `flash-message-template-${type}`;
   const template = document.getElementById(templateId);
   if (template && template.content) {
-    const node = template.content.cloneNode(true).children[0].cloneNode(true);
-    // いちメッセージ単位の境界を明示
-    node.setAttribute('data-flash-message', 'true');
-    const span = node.querySelector('.flash-message-text');
+    const base = template.content.firstElementChild;
+    if (!base) {
+      console.error(`[FlashUnified] Template #${templateId} has no root element`);
+      const node = document.createElement('div');
+      node.setAttribute('role', 'alert');
+      node.setAttribute('data-flash-message', 'true');
+      node.textContent = message;
+      return node;
+    }
+    const root = base.cloneNode(true);
+    root.setAttribute('data-flash-message', 'true');
+    const span = root.querySelector('.flash-message-text');
     if (span) span.textContent = message;
-    return node;
+    return root;
   } else {
-    console.error(`[FlashMessage] No template found for type: ${type}`);
+    console.error(`[FlashUnified] No template found for type: ${type}`);
     // テンプレートがない場合は生成
     const node = document.createElement('div');
     node.setAttribute('role', 'alert');
@@ -336,7 +351,7 @@ function handleFlashErrorStatus(status) {
 
   const generalerrors = document.getElementById('general-error-messages');
   if (!generalerrors) {
-    console.error('[FlashMessage] No general error messages element found');
+    console.error('[FlashUnified] No general error messages element found');
     return;
   }
 
@@ -344,7 +359,7 @@ function handleFlashErrorStatus(status) {
   if (li) {
     appendMessageToStorage(li.textContent.trim(), 'alert');
   } else {
-    console.error(`[FlashMessage] No error message defined for status: ${status}`);
+    console.error(`[FlashUnified] No error message defined for status: ${status}`);
   }
 }
 
