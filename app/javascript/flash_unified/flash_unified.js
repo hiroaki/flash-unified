@@ -1,5 +1,5 @@
 /*
-  Flash Message System - Client-side Integration
+  flash_unified.js - Flash Message Client-side Integration
 
   クライアント側でフラッシュ・メッセージを統一的に制御する仕組みです。
   サーバー、クライアント、プロキシからのエラーといった異なる発生によるものでも、
@@ -167,6 +167,12 @@ function initializeFlashMessageSystem(debugFlag = false) {
     renderFlashMessages();
   });
 
+  // Listen for our custom after-stream-render event
+  document.addEventListener("turbo:after-stream-render", function() {
+    debugLog('turbo:after-stream-render');
+    renderFlashMessages();
+  });
+
   // turbo:submit-end イベントは、フォーム送信時にサーバーからの HTTP レスポンスが返る場合だけでなく、
   // プロキシエラーやネットワークエラーなど、 Rails に到達しないケースも扱います。
   document.addEventListener('turbo:submit-end', function(event) {
@@ -180,6 +186,28 @@ function initializeFlashMessageSystem(debugFlag = false) {
     } else {
       handleFlashErrorStatus(res.statusCode);
     }
+    renderFlashMessages();
+  });
+
+  // Network error handling
+  document.addEventListener('turbo:fetch-request-error', function(_event) {
+    debugLog('turbo:fetch-request-error');
+    if (anyFlashStorageHasMessage()) {
+      return;
+    }
+
+    const generalerrors = document.getElementById('general-error-messages');
+    let message = null;
+    if (generalerrors) {
+      const li = generalerrors.querySelector('li[data-status="network"]');
+      if (li) message = li.textContent.trim();
+    }
+    if (message) {
+      appendMessageToStorage(message, 'alert');
+    } else {
+      console.error('[FlashMessage] No error message defined for network error');
+    }
+
     renderFlashMessages();
   });
 
@@ -220,52 +248,26 @@ function initializeFlashMessageSystem(debugFlag = false) {
         document.dispatchEvent(afterRenderEvent);
       };
     });
-
-    // Listen for our custom after-stream-render event
-    document.addEventListener("turbo:after-stream-render", function() {
-      debugLog('turbo:after-stream-render');
-      renderFlashMessages();
-    });
-
-    // Network error handling
-    document.addEventListener('turbo:fetch-request-error', function(_event) {
-      debugLog('turbo:fetch-request-error');
-      if (anyFlashStorageHasMessage()) {
-        return;
-      }
-
-      const generalerrors = document.getElementById('general-error-messages');
-      let message = null;
-      if (generalerrors) {
-        const li = generalerrors.querySelector('li[data-status="network"]');
-        if (li) message = li.textContent.trim();
-      }
-      if (message) {
-        appendMessageToStorage(message, 'alert');
-      } else {
-        console.error('[FlashMessage] No error message defined for network error');
-      }
-
-      renderFlashMessages();
-    });
   })();
 
-  let domLoaded = false;
-  document.addEventListener('DOMContentLoaded', function() {
-    if (domLoaded) return;
-    domLoaded = true;
-    debugLog('DOMContentLoaded');
-    renderFlashMessages();
-  });
-
-  // If the document is already loaded (e.g. script loaded late), run once
-  if (document.readyState === "complete" || document.readyState === "interactive") {
-    if (!domLoaded) {
+  (function() {
+    let domLoaded = false;
+    document.addEventListener('DOMContentLoaded', function() {
+      if (domLoaded) return;
       domLoaded = true;
-      debugLog('DOMContentLoaded (late)');
+      debugLog('DOMContentLoaded');
       renderFlashMessages();
+    });
+
+    // If the document is already loaded (e.g. script loaded late), run once
+    if (document.readyState === "complete" || document.readyState === "interactive") {
+      if (!domLoaded) {
+        domLoaded = true;
+        debugLog('DOMContentLoaded (late)');
+        renderFlashMessages();
+      }
     }
-  }
+  })();
 }
 
 /* フラッシュ・メッセージの表示をクリアします。
@@ -295,14 +297,14 @@ function createFlashMessageNode(type, message) {
   const template = document.getElementById(templateId);
   if (template && template.content) {
     const node = template.content.cloneNode(true).children[0].cloneNode(true);
-    // 1メッセージ単位の境界を明示
+    // いちメッセージ単位の境界を明示
     node.setAttribute('data-flash-message', 'true');
     const span = node.querySelector('.flash-message-text');
     if (span) span.textContent = message;
     return node;
   } else {
     console.error(`[FlashMessage] No template found for type: ${type}`);
-    // テンプレートがない場合は生成（おかしいことに気づかせるため意図的に CSS は充てていません）
+    // テンプレートがない場合は生成
     const node = document.createElement('div');
     node.setAttribute('role', 'alert');
     node.setAttribute('data-flash-message', 'true');
