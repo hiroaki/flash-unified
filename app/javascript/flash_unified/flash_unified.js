@@ -345,7 +345,7 @@ function handleFlashErrorStatus(status) {
 
   // Avoid duplicates when container has children
   const container = document.querySelector('[data-flash-message-container]');
-  if (container && container.children.length > 0) return;
+  if (container && container.querySelector('[data-flash-message]')) return;
 
   const generalerrors = document.getElementById('general-error-messages');
   if (!generalerrors) {
