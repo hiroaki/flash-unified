@@ -16,31 +16,31 @@ Gem::Specification.new do |spec|
 
   spec.metadata["homepage_uri"] = spec.homepage
   spec.metadata["source_code_uri"] = spec.homepage
-  # spec.metadata["changelog_uri"] = "#{spec.homepage}/blob/main/CHANGELOG.md"
+  spec.metadata["changelog_uri"] = "#{spec.homepage}/releases"
+  # Encourage MFA for publishing
+  spec.metadata["rubygems_mfa_required"] = "true"
 
   # Specify which files should be added to the gem when it is released.
   # The `git ls-files -z` loads the files in the RubyGem that have been added into git.
   spec.files         = Dir.chdir(File.expand_path('..', __FILE__)) do
-    `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features|gemfiles)/}) }
+    `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features|gemfiles|sandbox|bin|tmp)/}) }
   end
-  spec.bindir        = "exe"
-  spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
-  # Supported Rails versions: 7.1 and newer
+  # Supported Rails versions: tested against 7.1, 7.2, 8.0
   spec.add_dependency "rails", ">= 7.1"
 
   # turbo-rails is used by host apps to provide Turbo/Hotwire integration; include
   # it as a runtime dependency so the gem's JS + helpers work out of the box.
-  spec.add_dependency "turbo-rails", ">= 1.0"
+  spec.add_dependency "turbo-rails", ">= 2.0"
 
   #
-  spec.add_development_dependency "appraisal"
-  spec.add_development_dependency "capybara"
-  spec.add_development_dependency "cuprite"
-  spec.add_development_dependency "minitest"
-  spec.add_development_dependency "puma", ">= 5.0"
-  spec.add_development_dependency "rake"
-  spec.add_development_dependency "sprockets-rails"
+  spec.add_development_dependency "appraisal", ">= 2.5"
+  spec.add_development_dependency "capybara", ">= 3.40"
+  spec.add_development_dependency "cuprite", ">= 0.17"
+  spec.add_development_dependency "minitest", ">= 5.0"
+  spec.add_development_dependency "puma", ">= 7.0"
+  spec.add_development_dependency "rake", ">= 13.0"
+  spec.add_development_dependency "sprockets-rails", ">= 3.5"
   spec.add_development_dependency "sqlite3", ">= 1.4"
 end
