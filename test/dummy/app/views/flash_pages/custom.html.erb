@@ -1,0 +1,15 @@
+<h1>Custom</h1>
+
+<button id="dispatch-custom">Dispatch custom</button>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('dispatch-custom').addEventListener('click', () => {
+      const detail = [
+        { type: 'notice', message: 'Custom A' },
+        { type: 'alert',  message: 'Custom B' }
+      ];
+      document.dispatchEvent(new CustomEvent('flash-unified:messages', { detail }));
+    });
+  });
+  
+</script>

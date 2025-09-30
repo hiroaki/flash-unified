@@ -12,6 +12,15 @@ Rails.application.routes.draw do
     end
   end
 
+  scope :flash do
+    get  'basic',            to: 'flash_pages#basic'
+    get  'custom',           to: 'flash_pages#custom'
+    get  'stream',           to: 'flash_pages#stream'
+    post 'stream_update',    to: 'flash_pages#stream_update'
+    get  'events',           to: 'flash_pages#events'
+    get  'missing_template', to: 'flash_pages#missing_template'
+  end
+
   # Defines the root path route ("/")
   root to: "home#index"
 end

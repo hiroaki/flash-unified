@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>FlashUnified Test</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <%= stylesheet_link_tag "application" %>
+    <%= javascript_include_tag "turbo", type: "module" %>
+    <script type="module">
+      import { initializeFlashMessageSystem, renderFlashMessages } from "<%= asset_path('flash_unified/flash_unified.js') %>";
+      const init = () => { initializeFlashMessageSystem(); Promise.resolve().then(() => renderFlashMessages()); };
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", init);
+      } else {
+        init();
+      }
+    </script>
+  </head>
+  <body>
+    <%= flash_global_storage %>
+    <%= flash_templates %>
+    <%= flash_general_error_messages %>
+    <%= flash_container %>
+
+    <%= yield %>
+  </body>
+  </html>

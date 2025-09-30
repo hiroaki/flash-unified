@@ -1,0 +1,18 @@
+<h1>Events</h1>
+
+<button id="simulate-network">Simulate network error</button>
+<button id="simulate-413">Simulate 413</button>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('simulate-network').addEventListener('click', () => {
+      document.dispatchEvent(new CustomEvent('turbo:fetch-request-error', { detail: {} }));
+    });
+    document.getElementById('simulate-413').addEventListener('click', () => {
+      document.dispatchEvent(new CustomEvent('turbo:submit-end', {
+        detail: { fetchResponse: { statusCode: 413 } }
+      }));
+    });
+  });
+  
+</script>
