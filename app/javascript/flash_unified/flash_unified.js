@@ -1,98 +1,66 @@
 /*
-  flash_unified.js - Flash Message Client-side Integration
+  Flash Unified (standalone) — Minimal setup guide
 
-  クライアント側でフラッシュ・メッセージを統一的に制御する仕組みです。
-  サーバー、クライアント、プロキシからのエラーといった異なる発生によるものでも、
-  同じ仕組みでメッセージを表示できるようにします。
+  Purpose
+  - Read messages from hidden "storage" nodes and render them into a visible
+    container using <template> definitions.
+  - Auto-render after common events when Turbo is present, or call a render
+    function manually.
 
-  --- 概要 ---
-  1. フラッシュ・メッセージは <div data-flash-storage> 内の <ul><li> で保存します（非表示）。
-  2. 表示は <template> をもとに、 <div data-flash-message-container> 内に描画します。
-  3. Turbo イベントにより表示処理が自動で呼び出されます。または JavaScript で任意のタイミングでも呼び出せます。
+  Required DOM (no Rails helpers needed)
+  1) Display container (required)
+     <div data-flash-message-container></div>
 
-  --- 使い方 ---
-  サーバー（コントローラ）にてフラッシュ・メッセージを作成します：
+  2) Hidden storage (optional; any number; removed after render)
+     <div data-flash-storage style="display:none;">
+       <ul>
+         <li data-type="notice">Saved</li>
+         <li data-type="alert">Oops</li>
+       </ul>
+     </div>
 
-    flash[:alert] = "エラーが発生しました"
+  3) Message templates, one per type (root should have role="alert" and include
+     a .flash-message-text node for insertion)
+     <template id="flash-message-template-notice">
+       <div class="flash-notice" role="alert"><span class="flash-message-text"></span></div>
+     </template>
+     <template id="flash-message-template-alert">
+       <div class="flash-alert" role="alert"><span class="flash-message-text"></span></div>
+     </template>
 
-  サーバー（ビュー）でフラッシュ・メッセージを "ストレージ" 要素に描画します：
+  4) Global storage (required by appendMessageToStorage and Turbo Streams)
+     <div id="flash-storage" style="display:none;"></div>
 
-    <div data-flash-storage style="display: none;">
-      <ul>
-        <% flash.each do |type, message| %>
-          <li data-type="<%= type %>"><%= message %></li>
-        <% end %>
-      </ul>
-    </div>
+  5) General error messages (optional; network/HTTP fallback)
+     <ul id="general-error-messages" style="display:none;">
+       <li data-status="413">Payload Too Large</li>
+       <li data-status="network">Network Error</li>
+     </ul>
 
-  上記の flash オブジェクトが展開されると、例えばこのような形になります：
-
-    <div data-flash-storage style="display: none;">
-      <ul>
-        <li data-type="alert">メッセージ1内容</li>
-        <li data-type="notice">メッセージ2内容</li>
-      </ul>
-    </div>
-
-  この結果がクライアントに返され、そこでイベントが発生することで、
-  あらかじめビューに配置されている表示位置に、テンプレートで整形されたメッセージの要素が追加されます：
-
-    <div data-flash-message-container></div>
-
-  JavaScript から明示的に表示する場合は、 "ストレージ" にメッセージを入れてから描画処理を実行します：
-
-    appendMessageToStorage('数字以外が入力されています', 'alert');
-    renderFlashMessages();
-
-  --- Turbo Stream 用のストレージの定義 ---
-  Turbo Stream で HTML 部分を更新するには id を指定する必要があるため、
-  id を持ったストレージ用の要素をグローバルな位置に配置してください。中身は空にしておきます。
-
-    <div id="flash-storage" style="display: none;">
-    </div>
-
-  --- メッセージの <template> の定義 ---
-  扱うメッセージの type ごとに id を割り振ったテンプレートを作成し、グローバルな位置に配置してください。
-
-    <template id="flash-message-template-notice">
-      <div class="..." role="alert">
-        <span class="flash-message-text"></span>
-      </div>
-    </template>
-    <template id="flash-message-template-alert">
-      <div class="..." role="alert">
-        <span class="flash-message-text"></span>
-      </div>
-    </template>
-    <template id="flash-message-template-warning">
-      <div class="..." role="alert">
-        <span class="flash-message-text"></span>
-      </div>
-    </template>
-
-  --- 汎用エラーメッセージの定義 ---
-  サーバーに届く前のエラーを表示するためのメッセージを、グローバルな位置に配置してください。
-  定義すべき data-status は、すべての HTTP ステータスコードと "network" です。
-
-    <ul id="general-error-messages" style="display:none;">
-      ...
-      <li data-status="413">送信データサイズが大きすぎます。</li>
-      ...
-      <li data-status="500">サーバーエラーが発生しました</li>
-      ...
-      <li data-status="network">ネットワークエラーが発生しました</li>
-    </ul>
+  Initialization (ES module)
+    <script type="module">
+      import { initializeFlashMessageSystem } from "/path/to/flash_unified.js";
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", () => initializeFlashMessageSystem());
+      } else {
+        initializeFlashMessageSystem();
+      }
+    </script>
 */
 
 /* ストレージにあるメッセージを表示させます。
-  すべての flash-storage 内のリスト項目を集約し、各項目ごとにテンプレートを用いてフラッシュメッセージ要素を生成し、
-  flash-message-containerに追加します。なお処理後は各 flash-storage は取り除かれます。
-  */
+  すべての [data-flash-storage] 内のリスト項目を集約し、各項目ごとにテンプレートを用いて
+  フラッシュメッセージ要素を生成し、[data-flash-message-container] に追加します。
+  処理後は各ストレージ要素を取り除きます。
+  ---
+  Render messages found in all [data-flash-storage] lists, create elements via templates,
+  and append them into [data-flash-message-container]. Each storage is removed after processing.
+*/
 function renderFlashMessages() {
   const storages = document.querySelectorAll('[data-flash-storage]');
   const containers = document.querySelectorAll('[data-flash-message-container]');
 
-  // マージしたメッセージリスト
+  // Aggregated messages list
   let messages = [];
   storages.forEach(storage => {
     const ul = storage.querySelector('ul');
@@ -101,7 +69,7 @@ function renderFlashMessages() {
         messages.push({ type: li.dataset.type || 'notice', message: li.textContent.trim() });
       });
     }
-    // ストレージは都度クリア
+    // Remove storage after consuming
     storage.remove();
   });
 
@@ -114,7 +82,10 @@ function renderFlashMessages() {
 
 /* フラッシュ・メッセージ項目として message をデータとして埋め込みます。
   埋め込まれた項目は renderFlashMessages を呼び出すことによって表示されます。
-  */
+  ---
+  Append a message item into the hidden storage.
+  Call renderFlashMessages() to display it.
+*/
 function appendMessageToStorage(message, type = 'alert') {
   const storageContainer = document.getElementById("flash-storage");
   if (!storageContainer) {
@@ -122,8 +93,12 @@ function appendMessageToStorage(message, type = 'alert') {
     // TODO: あるいは自動生成して document.body.appendChild しますか？
     // ユーザの目に見えない部分で要素が増えることを避けたいと考え、警告に留めています。
     // 下で storage を生成する部分は、ユーザが設定するコンテナの中なので問題ありません。
+    // ---
+    // Alternatively we could auto-create it on document.body, but we avoid hidden side-effects.
+    // Creating the inner [data-flash-storage] below is safe since it's inside the user-provided container.
     return;
   }
+
   let storage = storageContainer.querySelector('[data-flash-storage]');
   if (!storage) {
     storage = document.createElement('div');
@@ -145,8 +120,11 @@ function appendMessageToStorage(message, type = 'alert') {
 }
 
 /* ページでフラッシュ・メッセージの仕組みを働かせるようにします。
-  ページのロードが完了したときに一度だけ呼び出してください。
-  */
+  ページのロードが完了したときに一度だけ呼び出してください（冪等）。
+  ---
+  Initialize the flash message system for the current page (idempotent).
+  Call once after the page is ready.
+*/
 function initializeFlashMessageSystem(debugFlag = false) {
   // Ensure listeners are registered only once per document lifecycle
   const root = document.documentElement;
@@ -174,20 +152,27 @@ function initializeFlashMessageSystem(debugFlag = false) {
     renderFlashMessages();
   });
 
+  // Turbo Stream レンダリング後のカスタムイベントに反応
+  // ---
   // Listen for our custom after-stream-render event
   document.addEventListener("turbo:after-stream-render", function() {
     debugLog('turbo:after-stream-render');
     renderFlashMessages();
   });
 
-  // turbo:submit-end イベントは、フォーム送信時にサーバーからの HTTP レスポンスが返る場合だけでなく、
-  // プロキシエラーやネットワークエラーなど、 Rails に到達しないケースも扱います。
+  // フォーム送信時にサーバーからの HTTP レスポンスが返る場合だけでなく、
+  // プロキシエラーやネットワークエラーなど、Rails に到達しないケースも扱います。
+  // ---
+  // Handles not only successful server responses but also proxy/network errors
+  // where the request never reaches Rails.
   document.addEventListener('turbo:submit-end', function(event) {
     debugLog('turbo:submit-end');
     const res = event.detail.fetchResponse;
     if (res === undefined) {
       // fetchResponse が undefined の場合は、ネットワーク断やプロキシによる遮断など、
       // サーバーに到達していない可能性があるため、その場合はネットワークエラーとして扱います。
+      // ---
+      // When fetchResponse is undefined, likely a network/proxy issue — treat as network error.
       handleFlashErrorStatus('network');
       console.warn('[FlashUnified] No response received from server. Possible network or proxy error.');
     } else {
@@ -196,7 +181,7 @@ function initializeFlashMessageSystem(debugFlag = false) {
     renderFlashMessages();
   });
 
-  // Network error handling
+  // ネットワークエラーのハンドリング / Network error handling
   document.addEventListener('turbo:fetch-request-error', function(_event) {
     debugLog('turbo:fetch-request-error');
     if (anyFlashStorageHasMessage()) {
@@ -218,11 +203,15 @@ function initializeFlashMessageSystem(debugFlag = false) {
     renderFlashMessages();
   });
 
+  // 任意: サーバーや他の JS からのカスタムイベントを受け取ります
+  // イベント名: "flash-unified:messages"
+  // event.detail は次のいずれかです:
+  //   - Array<{ type: string, message: string }>
+  //   - { messages: Array<{ type: string, message: string }> }
+  // ---
   // Optional: Listen for custom dispatch from server or other JS
   // Event name: "flash-unified:messages"
-  // event.detail can be:
-  //   - Array of { type: string, message: string }
-  //   - { messages: Array<{ type: string, message: string }> }
+  // event.detail can be an Array of messages or an object with a messages array.
   document.addEventListener('flash-unified:messages', function(event) {
     debugLog('flash-unified:messages');
     try {
@@ -232,16 +221,16 @@ function initializeFlashMessageSystem(debugFlag = false) {
     }
   });
 
-  // Setup custom turbo:after-stream-render event for Turbo Stream updates
-  // This replaces MutationObserver with a cleaner event-driven approach
-  //
-  // Based on technique from Hotwired community discussion:
+  // Turbo Stream 更新検知のためのカスタムイベント設定
+  // MutationObserver の代わりに、イベント駆動で「描画完了」を検出します。
+  // 参考: Hotwired コミュニティのディスカッション
   // https://discuss.hotwired.dev/t/event-to-know-a-turbo-stream-has-been-rendered/1554/25
   //
-  // The core idea is to hook into turbo:before-stream-render and wrap the original
-  // render function to dispatch a custom event after rendering completes.
-  // This provides a clean event-driven alternative to MutationObserver for detecting
-  // when Turbo Stream updates have finished rendering.
+  // コアアイデア: turbo:before-stream-render をフックし、元の render 関数をラップして、
+  // 描画完了後に独自イベントを発火させます。
+  // ---
+  // Setup custom turbo:after-stream-render event for Turbo Stream updates.
+  // Wrap the original render to dispatch an event after rendering is done.
   (function() {
     // Create custom event for after stream render
     const afterRenderEvent = new Event("turbo:after-stream-render");
@@ -262,7 +251,7 @@ function initializeFlashMessageSystem(debugFlag = false) {
     document.addEventListener('DOMContentLoaded', function() {
       if (domLoaded) return;
       domLoaded = true;
-      debugLog('DOMContentLoaded');
+      debugLog('DOMContentLoaded (initial load)');
       renderFlashMessages();
     });
 
@@ -270,7 +259,7 @@ function initializeFlashMessageSystem(debugFlag = false) {
     if (document.readyState === "complete" || document.readyState === "interactive") {
       if (!domLoaded) {
         domLoaded = true;
-        debugLog('DOMContentLoaded (late)');
+        debugLog('DOMContentLoaded (late init)');
         renderFlashMessages();
       }
     }
@@ -278,9 +267,12 @@ function initializeFlashMessageSystem(debugFlag = false) {
 }
 
 /* フラッシュ・メッセージの表示をクリアします。
-    message が指定されている場合は、そのメッセージを含んだフラッシュ・メッセージをクリアします。
-    message が省略された場合は全てが対象です。
-  */
+  message が指定されている場合は、そのメッセージを含んだフラッシュ・メッセージのみを削除します。
+  省略された場合はすべてのフラッシュ・メッセージが対象です。
+  ---
+  Clear flash messages. If message is provided, remove only matching ones;
+  otherwise remove all flash message nodes in the containers.
+*/
 function clearFlashMessages(message) {
   document.querySelectorAll('[data-flash-message-container]').forEach(container => {
     // メッセージ指定なし: メッセージ要素のみ全削除（コンテナ内の他要素は残す）
@@ -297,8 +289,15 @@ function clearFlashMessages(message) {
   });
 }
 
-// --- utility functions ---
+// --- ユーティリティ関数 / Utility functions ---
 
+/* テンプレートからフラッシュ・メッセージ要素を生成します。
+  type に対応する <template id="flash-message-template-<type>"> を利用し、
+  .flash-message-text に文言を挿入します。テンプレートが無い場合は簡易的な要素を生成します。
+  ---
+  Create a flash message DOM node using <template id="flash-message-template-<type>">.
+  Inserts the message into .flash-message-text. Falls back to a minimal element when template is missing.
+*/
 function createFlashMessageNode(type, message) {
   const templateId = `flash-message-template-${type}`;
   const template = document.getElementById(templateId);
@@ -319,7 +318,7 @@ function createFlashMessageNode(type, message) {
     return root;
   } else {
     console.error(`[FlashUnified] No template found for type: ${type}`);
-    // テンプレートがない場合は生成
+    // テンプレートがない場合は生成 / Fallback element when template is missing
     const node = document.createElement('div');
     node.setAttribute('role', 'alert');
     node.setAttribute('data-flash-message', 'true');
@@ -331,11 +330,18 @@ function createFlashMessageNode(type, message) {
   }
 }
 
+/* エラーステータスに応じた汎用メッセージをストレージへ追加します。
+  既にストレージにメッセージが存在する場合は何もしません。
+  'network' または 4xx/5xx を対象とし、#general-error-messages から文言を解決します。
+  ---
+  Add a general error message to storage based on status ('network' or 4xx/5xx).
+  If any storage already has messages, this is a no-op. Looks up text in #general-error-messages.
+*/
 function handleFlashErrorStatus(status) {
   // If any flash storage already contains messages, do not override it
   if (anyFlashStorageHasMessage()) return;
 
-  // Determine lookup key: 'network' or the numeric status string
+  // Determine lookup key
   let key;
   if (status === 'network') {
     key = 'network';
@@ -345,7 +351,7 @@ function handleFlashErrorStatus(status) {
     key = String(status);
   }
 
-  // If the visible container already has children, avoid inserting duplicates
+  // Avoid duplicates when container has children
   const container = document.querySelector('[data-flash-message-container]');
   if (container && container.children.length > 0) return;
 
@@ -363,6 +369,10 @@ function handleFlashErrorStatus(status) {
   }
 }
 
+/* 何らかのストレージにメッセージが存在するかを判定します。
+  ---
+  Return true if any [data-flash-storage] contains at least one <li> item.
+*/
 function anyFlashStorageHasMessage() {
   const storages = document.querySelectorAll('[data-flash-storage]');
   for (const storage of storages) {
@@ -374,8 +384,11 @@ function anyFlashStorageHasMessage() {
   return false;
 }
 
-// Handle a payload of messages and render them.
-// Accepts either an array of { type, message } or an object { messages: [...] }.
+/* メッセージの配列（または { messages: [...] }）を受け取り、ストレージに追加して描画します。
+  ---
+  Handle a payload of messages and render them.
+  Accepts either an array of { type, message } or an object { messages: [...] }.
+*/
 function handleFlashPayload(payload) {
   if (!payload) return;
   const list = Array.isArray(payload)
@@ -389,9 +402,13 @@ function handleFlashPayload(payload) {
   renderFlashMessages();
 }
 
-// Optional: Enable a MutationObserver that watches for dynamically inserted
-// flash storage or templates and triggers rendering. Useful when you cannot
-// or do not want to dispatch a custom event from server responses.
+/* 任意: MutationObserver を有効化し、動的に挿入されたストレージ/テンプレートを検出して描画します。
+  サーバーレスポンス側でカスタムイベントを発火できない場合の代替となります。
+  ---
+  Optional: Enable a MutationObserver that watches for dynamically inserted
+  flash storage or templates and triggers rendering. Useful when you cannot
+  or do not want to dispatch a custom event from server responses.
+*/
 function enableMutationObserver(options = {}) {
   const root = document.documentElement;
   if (root.hasAttribute('data-flash-unified-observer-enabled')) return;
@@ -435,4 +452,3 @@ export {
   handleFlashPayload,
   enableMutationObserver
 };
-
