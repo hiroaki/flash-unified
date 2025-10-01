@@ -18,7 +18,16 @@ set -euo pipefail
 #   bin/test all rails-7.2
 
 SUITE=${1:-all}
-REQUESTED=${2:-all}
+# Default requested appraisal to $APPRAISAL when provided (e.g., in CI), otherwise 'all'
+REQUESTED=${2:-${APPRAISAL:-all}}
+
+# Minimal logging to help CI: show selected suite and appraisal
+echo "Params: SUITE='${SUITE}' REQUESTED='${REQUESTED}' APPRAISAL='${APPRAISAL:-}'"
+
+# Defensive fallback: if REQUESTED is still 'all' but APPRAISAL is set, prefer the env (CI safety)
+if [[ "$REQUESTED" == "all" && -n "${APPRAISAL:-}" ]]; then
+  REQUESTED="$APPRAISAL"
+fi
 
 usage() {
   cat <<USAGE
