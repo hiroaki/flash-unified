@@ -15,12 +15,12 @@
 |------|-----------|-----------|
 | ユニットテスト | あり。例: `FlashUnified::Installer` の挙動、モジュールのスモークテスト | `test/unit`、`test/unit/flash_unified_test.rb` |
 | ジェネレータテスト | あり（最小ケース） | `test/generators/install_generator_test.rb` |
-| システムテスト | あり（最小ケース）。現状は rack_test ドライバで JS 実行は cuprite を予定 | `test/system/dummy_home_test.rb`、`test/application_system_test_case.rb` |
+| システムテスト | あり（cuprite による JS 実行対応）。Turbo Drive/Frame の動作やエラーハンドリングを含む | `test/system/dummies_system_test.rb`、`test/system/dummy_home_test.rb`、`test/application_system_test_case.rb` |
 | JavaScript 単体テスト | 未導入 | 将来: jsdom + vitest 等を検討 |
 | 複数 Rails 互換性 | Appraisals 導入済み | `Appraisals`、`bundle exec appraisal ...` |
 | CI（GitHub Actions） | 導入済み | `.github/workflows/ci.yml` |
 | サンドボックス | 手元検証用アプリを生成（Importmap/Propshaft/Sprockets） | `bin/sandbox`（テンプレ: `sandbox/templates/*.rb`） |
-| 補助スクリプト | Appraisals を横断して system / generators テストを実行 | `bin/run-dummy-tests` |
+| 補助スクリプト | Appraisals を横断して unit / generators / system を実行（スイート先行 CLI。既定は両方 all） | `bin/run-dummy-tests` |
 
 ## 2. ファイル構成
 
@@ -44,38 +44,44 @@ bundle install
 bundle exec appraisal install
 ```
 
-2) 動作確認
+2) テストの実行
 
 ```bash
-bundle exec rake test:unit
 bin/run-dummy-tests
-bin/run-dummy-tests all generators
 ```
 
 備考:
-- Rails が必要なテストは Appraisals を使って実行します。 `bin/run-dummy-tests` は各バージョンの Rails を用いて system / generators テストを走らせるためのバッチスクリプトです。
+- Rails が必要なテストは Appraisals を使って実行します。 `bin/run-dummy-tests` は各バージョンの Rails を用いて unit / generators / system を横断実行するためのラッパーです。
 
 ## 4. テストの実行方法
 
-全体をまとめて実行するテストは未整備です。次のとおり、単位ごとに実行してください。
+テストは目的ごとに個別に実行できます（スイート先行 CLI）。
+
+シグネチャ: `bin/run-dummy-tests [suite] [appraisal]`
 
 ```
-# ユニットテストのみ
+# すべての Appraisals で全スイート（既定）
+bin/run-dummy-tests
+
+# すべての Appraisals で特定スイートのみ
+bin/run-dummy-tests unit
+bin/run-dummy-tests generators
+bin/run-dummy-tests system
+
+# 特定の Appraisal で全スイート
+bin/run-dummy-tests all rails-7.2
+
+# 特定の Appraisal で特定スイート
+bin/run-dummy-tests unit rails-7.2
+bin/run-dummy-tests generators rails-7.2
+bin/run-dummy-tests system rails-7.2
+
+# ユニットテストのみ（現在の Gemfile 使用）
 bundle exec rake test:unit
 
-# ジェネレータテストのみ
-bin/run-dummy-tests all generators
-
-# システムテストのみ
-bin/run-dummy-tests
-bin/run-dummy-tests all
-
-# 参考： ジェネレータテストのうち Rails 7.2 のみ
-bin/run-dummy-tests rails-7.2 generators
+# Appraisal を明示して Rake を直接呼ぶ例
+bundle exec appraisal rails-7.2 rake test:unit
 bundle exec appraisal rails-7.2 rake test:generators
-
-# 参考： システムテストのうち Rails 7.2 のみ:
-bin/run-dummy-tests rails-7.2
 bundle exec appraisal rails-7.2 rake test:system
 
 # 参考: 個別ファイルの実行（ Rails 不要なもの）
@@ -87,9 +93,9 @@ bundle exec appraisal rails-7.2 rake test TEST=test/system/target_test.rb
 
 システムテストで JavaScript が必要なものは Capybara のドライバーに cuprite を使用しています。そのため実行環境に Chrome ブラウザが必要です。
 
-cuprite の設定として、環境変数に `HEADLESS` に `0` をセットすると、ヘッドレス・モードを解除して実行します。また `SLOWMO` に秒数をセットすると、ステップごとにその秒数のディレイが入ります。これらを合わせて指定すると、ブラウザの実際の操作の様子を観察できます：
+cuprite の設定として、環境変数 `HEADLESS` に `0` をセットするとヘッドレス・モードを解除します。また `SLOWMO` に秒数をセットすると、ステップごとにその秒数のディレイが入ります。これらを合わせて指定すると、ブラウザの実際の操作の様子を観察できます：
 ```
-HEADLESS=0 SLOWMO=0.3 bin/run-dummy-tests rails-7.2
+HEADLESS=0 SLOWMO=0.3 bin/run-dummy-tests system rails-7.2
 ```
 
 ## 5. ダミーアプリとサンドボックス

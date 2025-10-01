@@ -13,14 +13,14 @@ This guide helps new contributors get started quickly and safely. It summarizes 
 
 | Item | Status / description | References |
 |------|-----------------------|------------|
-| Unit tests | Present. Examples: `FlashUnified::Installer` behavior, module smoke test | `test/unit`, `test/unit/flash_unified_test.rb` |
+| Unit tests | Present | `test/unit` |
 | Generator tests | Present (minimal) | `test/generators/install_generator_test.rb` |
-| System tests | Present (minimal). Currently uses rack_test driver; JS execution is out of scope | `test/system/dummy_home_test.rb`, `test/application_system_test_case.rb` |
+| System tests | Present (JS via cuprite). Includes Turbo Drive/Frame flows and error handling | `test/system/dummies_system_test.rb`, `test/system/dummy_home_test.rb`, `test/application_system_test_case.rb` |
 | JS unit tests | Not introduced | Consider jsdom + vitest when JS complexity grows |
 | Multi-Rails compatibility | Appraisals in place (Rails 7.1.5.2 / 7.2.2.2 / 8.0.3) | `Appraisals`, `bundle exec appraisal ...` |
 | CI (GitHub Actions) | In place | `.github/workflows/ci.yml` (jobs: unit-tests〈Ruby 3.2/3.3〉, generate-appraisals, generator-tests〈Appraisals matrix〉, system-tests〈Appraisals matrix〉) |
 | Sandbox | Generate local apps for quick checks (Importmap/Propshaft/Sprockets) | `bin/sandbox` (templates: `sandbox/templates/*.rb`) |
-| Helper script | Run system / generator tests across Appraisals | `bin/run-dummy-tests` |
+| Helper script | Run unit/generator/system across Appraisals. Suite-first CLI; defaults: `suite=all`, `appraisal=all` | `bin/run-dummy-tests` |
 
 ## 2. Repository layout
 
@@ -44,43 +44,51 @@ bundle install
 bundle exec appraisal install
 ```
 
-2) Quick smoke run
+2) Run tests
 
 ```bash
-bundle exec rake test:unit
 bin/run-dummy-tests
 ```
 
 Notes:
-- Tests requiring Rails variants run via Appraisals. `bin/run-dummy-tests` is a convenience wrapper to execute system / generator tests across defined Appraisals.
+- Tests requiring specific Rails variants run via Appraisals. `bin/run-dummy-tests` is a convenience wrapper to execute unit / generator / system tests across defined Appraisals.
 
 ## 4. How to run tests (by purpose)
 
 Run suites separately for clarity and speed.
 
+Signature: `bin/run-dummy-tests [suite] [appraisal]`
+
 ```
-# Unit only:
+# All suites across all Appraisals (default)
+bin/run-dummy-tests
+
+# Specific suite across all Appraisals
+bin/run-dummy-tests unit
+bin/run-dummy-tests generators
+bin/run-dummy-tests system
+
+# All suites on a specific Appraisal
+bin/run-dummy-tests all rails-7.2
+
+# Specific suite on a specific Appraisal
+bin/run-dummy-tests unit rails-7.2
+bin/run-dummy-tests generators rails-7.2
+bin/run-dummy-tests system rails-7.2
+
+# Unit only using current Gemfile
 bundle exec rake test:unit
 
-# Generators only:
-bin/run-dummy-tests all generators
-
-# System only:
-bin/run-dummy-tests
-bin/run-dummy-tests all
-
-# Reference: Generators on Rails 7.2 only:
-bin/run-dummy-tests rails-7.2 generators
+# Appraisal-scoped Rake invocations
+bundle exec appraisal rails-7.2 rake test:unit
 bundle exec appraisal rails-7.2 rake test:generators
-
-# Reference: System only on Rails 7.2:
-bin/run-dummy-tests rails-7.2
 bundle exec appraisal rails-7.2 rake test:system
 
-# Reference: single-file run (no Rails)
-bundle exec rake test TEST=test/unit/target_test.rb
+# Reference: single-file run (pure Ruby)
+bundle exec rake test TEST=test/unit/flash_unified_test.rb
 
-# Reference: single-file run (requires Rails)
+# Reference: single-file run
+bundle exec rake test TEST=test/unit/view_helper_test.rb
 bundle exec appraisal rails-7.2 rake test TEST=test/system/target_test.rb
 ```
 
@@ -89,7 +97,7 @@ For system tests that require JavaScript, the Capybara driver uses cuprite, so a
 With cuprite, if you set the environment variable `HEADLESS=0`, tests will run in non-headless mode. You can also set `SLOWMO` to a number of seconds to add a delay between steps. Combining these allows you to observe browser actions visually:
 
 ```
-HEADLESS=0 SLOWMO=0.3 bin/run-dummy-tests rails-7.2
+HEADLESS=0 SLOWMO=0.3 bin/run-dummy-tests system rails-7.2
 ```
 
 ## 5. Dummy app vs Sandbox

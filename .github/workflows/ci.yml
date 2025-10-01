@@ -122,9 +122,9 @@ jobs:
             ${{ runner.os }}-gems-${{ matrix.ruby }}-${{ matrix.appraisal }}-
             ${{ runner.os }}-gems-${{ matrix.ruby }}-
 
-      - name: Run generator tests under appraisal
+      - name: Run generator tests via helper (suite-first)
         run: |
-          bundle exec appraisal ${APPRAISAL} rake test:generators
+          bin/run-dummy-tests generators ${APPRAISAL}
 
   system-tests:
     name: System tests (Appraisal matrix)
@@ -171,6 +171,6 @@ jobs:
             sudo apt-get install -y chromium-browser --no-install-recommends
           fi
 
-      - name: Run dummy system test under appraisal
+      - name: Run system tests via helper (suite-first)
         run: |
-          bundle exec appraisal ${APPRAISAL} rake test:system
+          bin/run-dummy-tests system ${APPRAISAL}
