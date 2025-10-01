@@ -8,51 +8,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  unit-tests:
-    name: Unit tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 3
-    strategy:
-      matrix:
-        ruby: [3.2, 3.3]
-      # limit parallel matrix cells to avoid overwhelming rubygems.org
-      max-parallel: 2
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: ${{ matrix.ruby }}
-          bundler-cache: true
-
-      - name: Compute Gemfile hash
-        id: gemfile_hash
-        run: |
-          # compute hash of Gemfile to use in cache key
-          if [ -f Gemfile ]; then echo "hash=$(sha1sum Gemfile | awk '{print $1}')" >> "$GITHUB_OUTPUT"; else echo "hash=missing" >> "$GITHUB_OUTPUT"; fi
-
-      - name: Cache Ruby gems
-        uses: actions/cache@v4
-        with:
-          path: vendor/bundle
-          key: ${{ runner.os }}-gems-${{ matrix.ruby }}-${{ steps.gemfile_hash.outputs.hash }}
-          restore-keys: |
-            ${{ runner.os }}-gems-${{ matrix.ruby }}-
-
-      - name: Ensure no Gemfile.lock influence
-        run: |
-          # Remove any checked-in Gemfile.lock to force fresh resolution in CI
-          if [ -f Gemfile.lock ]; then git rm -f --ignore-unmatch Gemfile.lock || true; fi
-
-      - name: Install dependencies (fresh)
-        run: |
-          bundle config set --local path 'vendor/bundle'
-          bundle config set --local without 'production'
-          bundle install --jobs 1 --retry 2
-
-      - name: Run unit tests
-        run: bundle exec rake test:unit
-
   generate-appraisals:
     name: Generate Appraisals list
     runs-on: ubuntu-latest
@@ -84,80 +39,37 @@ jobs:
           JSON=$(printf '%s\n' "$APPS" | awk 'NF{gsub(/"/,"\\\""); printf "%s\"%s\"", sep, $0; sep=","} END{print ""}')
           echo "appraisals=[$JSON]" >> "$GITHUB_OUTPUT"
 
-  generator-tests:
-    name: Generator tests
+  all-tests:
+    name: All tests
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 25
+    needs: generate-appraisals
     strategy:
       matrix:
         ruby: [3.2, 3.3]
         appraisal: ${{ fromJson(needs.generate-appraisals.outputs.appraisals) }}
       # limit parallel matrix cells to avoid overwhelming rubygems.org
       max-parallel: 2
-    needs: generate-appraisals
     env:
       APPRAISAL: ${{ matrix.appraisal }}
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
 
-      - name: Install dependencies (fresh)
+      - name: Ensure no Gemfile.lock influence
         run: |
-          bundle config set --local path 'vendor/bundle'
-          bundle config set --local without 'production'
-          bundle install --jobs 1 --retry 2
+          # Remove any checked-in Gemfile.lock to force fresh resolution in CI
+          if [ -f Gemfile.lock ]; then git rm -f --ignore-unmatch Gemfile.lock || true; fi
 
-      - name: Install appraisal gemfiles
+      - name: Warm selected appraisal dependencies
         run: |
-          bundle exec appraisal install
-
-      - name: Cache Ruby gems (generator appraisal)
-        uses: actions/cache@v4
-        with:
-          path: vendor/bundle
-          key: ${{ runner.os }}-gems-${{ matrix.ruby }}-${{ matrix.appraisal }}
-          restore-keys: |
-            ${{ runner.os }}-gems-${{ matrix.ruby }}-${{ matrix.appraisal }}-
-            ${{ runner.os }}-gems-${{ matrix.ruby }}-
-
-      - name: Run generator tests via helper (suite-first)
-        run: |
-          echo "Running generators with APPRAISAL='${APPRAISAL}' (matrix='${{ matrix.appraisal }}')"
-          bin/test generators
-
-  system-tests:
-    name: System tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    strategy:
-      matrix:
-        ruby: [3.2]
-        appraisal: ${{ fromJson(needs.generate-appraisals.outputs.appraisals) }}
-      max-parallel: 2
-    needs: generate-appraisals
-    env:
-      APPRAISAL: ${{ matrix.appraisal }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: ${{ matrix.ruby }}
-          bundler-cache: true
-
-      - name: Install dependencies (fresh)
-        run: |
-          bundle config set --local path 'vendor/bundle'
-          bundle config set --local without 'production'
-          bundle install --jobs 1 --retry 2
-
-      - name: Install appraisal gemfiles
-        run: |
-          bundle exec appraisal install
+          echo "Installing gems for APPRAISAL='${APPRAISAL}'"
+          bundle exec appraisal "${APPRAISAL}" bundle install --jobs 1 --retry 2
 
       - name: Check installed browser (install if missing)
         run: |
@@ -171,7 +83,7 @@ jobs:
             sudo apt-get install -y chromium-browser --no-install-recommends
           fi
 
-      - name: Run system tests via helper (suite-first)
+      - name: Run all tests via helper
         run: |
-          echo "Running system with APPRAISAL='${APPRAISAL}' (matrix='${{ matrix.appraisal }}')"
-          bin/test system
+          echo "Running all tests with APPRAISAL='${APPRAISAL}' (matrix='${{ matrix.appraisal }}', ruby='${{ matrix.ruby }}')"
+          bin/test
