@@ -20,7 +20,7 @@
 | 複数 Rails 互換性 | Appraisals 導入済み | `Appraisals`、`bundle exec appraisal ...` |
 | CI（GitHub Actions） | 導入済み | `.github/workflows/ci.yml` |
 | サンドボックス | 手元検証用アプリを生成（Importmap/Propshaft/Sprockets） | `bin/sandbox`（テンプレ: `sandbox/templates/*.rb`） |
-| 補助スクリプト | Appraisals を横断して unit / generators / system を実行（スイート先行 CLI。既定は両方 all） | `bin/run-dummy-tests` |
+| 補助スクリプト | Appraisals を横断して unit / generators / system を実行（スイート先行 CLI。既定は両方 all） | `bin/test` |
 
 ## 2. ファイル構成
 
@@ -47,34 +47,34 @@ bundle exec appraisal install
 2) テストの実行
 
 ```bash
-bin/run-dummy-tests
+bin/test
 ```
 
 備考:
-- Rails が必要なテストは Appraisals を使って実行します。 `bin/run-dummy-tests` は各バージョンの Rails を用いて unit / generators / system を横断実行するためのラッパーです。
+- Rails が必要なテストは Appraisals を使って実行します。 `bin/test` は各バージョンの Rails を用いて unit / generators / system を横断実行するためのラッパーです。
 
 ## 4. テストの実行方法
 
 テストは目的ごとに個別に実行できます（スイート先行 CLI）。
 
-シグネチャ: `bin/run-dummy-tests [suite] [appraisal]`
+シグネチャ: `bin/test [suite] [appraisal]`
 
 ```
 # すべての Appraisals で全スイート（既定）
-bin/run-dummy-tests
+bin/test
 
 # すべての Appraisals で特定スイートのみ
-bin/run-dummy-tests unit
-bin/run-dummy-tests generators
-bin/run-dummy-tests system
+bin/test unit
+bin/test generators
+bin/test system
 
 # 特定の Appraisal で全スイート
-bin/run-dummy-tests all rails-7.2
+bin/test all rails-7.2
 
 # 特定の Appraisal で特定スイート
-bin/run-dummy-tests unit rails-7.2
-bin/run-dummy-tests generators rails-7.2
-bin/run-dummy-tests system rails-7.2
+bin/test unit rails-7.2
+bin/test generators rails-7.2
+bin/test system rails-7.2
 
 # ユニットテストのみ（現在の Gemfile 使用）
 bundle exec rake test:unit
@@ -95,7 +95,7 @@ bundle exec appraisal rails-7.2 rake test TEST=test/system/target_test.rb
 
 cuprite の設定として、環境変数 `HEADLESS` に `0` をセットするとヘッドレス・モードを解除します。また `SLOWMO` に秒数をセットすると、ステップごとにその秒数のディレイが入ります。これらを合わせて指定すると、ブラウザの実際の操作の様子を観察できます：
 ```
-HEADLESS=0 SLOWMO=0.3 bin/run-dummy-tests system rails-7.2
+HEADLESS=0 SLOWMO=0.3 bin/test system rails-7.2
 ```
 
 ## 5. ダミーアプリとサンドボックス

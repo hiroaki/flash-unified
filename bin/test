@@ -4,36 +4,37 @@ set -euo pipefail
 # Run dummy app tests across Appraisals using rake tasks.
 # New CLI (breaking change): SUITE first, then Rails version (Appraisal)
 # Usage:
-#   bin/run-dummy-tests [suite] [appraisal]
+#   bin/test [suite] [appraisal]
 #     - Both args default to 'all' when omitted
 #     - Suite is required when specifying an appraisal (suite-first CLI)
 #   suite: system | generators | unit | all
 #   appraisal: rails-7.1 | rails-7.2 | rails-8.0 | all
 # Examples:
-#   bin/run-dummy-tests                     # runs all suites for all appraisals (default)
-#   bin/run-dummy-tests all all             # explicit: all suites × all appraisals
-#   bin/run-dummy-tests system              # system tests for all appraisals
-#   bin/run-dummy-tests generators rails-7.1
-#   bin/run-dummy-tests unit all
-#   bin/run-dummy-tests all rails-7.2
+#   bin/test                     # runs all suites for all appraisals (default)
+#   bin/test all all             # explicit: all suites × all appraisals
+#   bin/test system              # system tests for all appraisals
+#   bin/test generators rails-7.1
+#   bin/test unit all
+#   bin/test all rails-7.2
 
 SUITE=${1:-all}
 REQUESTED=${2:-all}
 
 usage() {
   cat <<USAGE
-    Usage: $(basename "$0") [suite] [appraisal]
-      - Both args default to 'all' when omitted
-      - Suite is required when specifying an appraisal (suite-first CLI)
-      suite: system | generators | unit | all
-      appraisal: rails-7.1 | rails-7.2 | rails-8.0 | all
-    Examples:
-      $(basename "$0")
-      $(basename "$0") all all
-      $(basename "$0") system
-      $(basename "$0") generators rails-7.1
-      $(basename "$0") unit all
-      $(basename "$0") all rails-7.2
+Usage: $(basename "$0") [suite] [appraisal]
+  - Both args default to 'all' when omitted
+  - Suite is required when specifying an appraisal (suite-first CLI)
+  suite: system | generators | unit | all
+  appraisal: rails-7.1 | rails-7.2 | rails-8.0 | all
+
+Examples:
+  $(basename "$0")
+  $(basename "$0") all all
+  $(basename "$0") system
+  $(basename "$0") generators rails-7.1
+  $(basename "$0") unit all
+  $(basename "$0") all rails-7.2
 USAGE
 }
 

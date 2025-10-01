@@ -20,7 +20,7 @@ This guide helps new contributors get started quickly and safely. It summarizes 
 | Multi-Rails compatibility | Appraisals in place (Rails 7.1.5.2 / 7.2.2.2 / 8.0.3) | `Appraisals`, `bundle exec appraisal ...` |
 | CI (GitHub Actions) | In place | `.github/workflows/ci.yml` (jobs: unit-tests〈Ruby 3.2/3.3〉, generate-appraisals, generator-tests〈Appraisals matrix〉, system-tests〈Appraisals matrix〉) |
 | Sandbox | Generate local apps for quick checks (Importmap/Propshaft/Sprockets) | `bin/sandbox` (templates: `sandbox/templates/*.rb`) |
-| Helper script | Run unit/generator/system across Appraisals. Suite-first CLI; defaults: `suite=all`, `appraisal=all` | `bin/run-dummy-tests` |
+| Helper script | Run unit/generator/system across Appraisals. Suite-first CLI; defaults: `suite=all`, `appraisal=all` | `bin/test` |
 
 ## 2. Repository layout
 
@@ -47,34 +47,34 @@ bundle exec appraisal install
 2) Run tests
 
 ```bash
-bin/run-dummy-tests
+bin/test
 ```
 
 Notes:
-- Tests requiring specific Rails variants run via Appraisals. `bin/run-dummy-tests` is a convenience wrapper to execute unit / generator / system tests across defined Appraisals.
+- Tests requiring specific Rails variants run via Appraisals. `bin/test` is a convenience wrapper to execute unit / generator / system tests across defined Appraisals.
 
 ## 4. How to run tests (by purpose)
 
 Run suites separately for clarity and speed.
 
-Signature: `bin/run-dummy-tests [suite] [appraisal]`
+Signature: `bin/test [suite] [appraisal]`
 
 ```
 # All suites across all Appraisals (default)
-bin/run-dummy-tests
+bin/test
 
 # Specific suite across all Appraisals
-bin/run-dummy-tests unit
-bin/run-dummy-tests generators
-bin/run-dummy-tests system
+bin/test unit
+bin/test generators
+bin/test system
 
 # All suites on a specific Appraisal
-bin/run-dummy-tests all rails-7.2
+bin/test all rails-7.2
 
 # Specific suite on a specific Appraisal
-bin/run-dummy-tests unit rails-7.2
-bin/run-dummy-tests generators rails-7.2
-bin/run-dummy-tests system rails-7.2
+bin/test unit rails-7.2
+bin/test generators rails-7.2
+bin/test system rails-7.2
 
 # Unit only using current Gemfile
 bundle exec rake test:unit
@@ -97,7 +97,7 @@ For system tests that require JavaScript, the Capybara driver uses cuprite, so a
 With cuprite, if you set the environment variable `HEADLESS=0`, tests will run in non-headless mode. You can also set `SLOWMO` to a number of seconds to add a delay between steps. Combining these allows you to observe browser actions visually:
 
 ```
-HEADLESS=0 SLOWMO=0.3 bin/run-dummy-tests system rails-7.2
+HEADLESS=0 SLOWMO=0.3 bin/test system rails-7.2
 ```
 
 ## 5. Dummy app vs Sandbox
@@ -121,4 +121,3 @@ HEADLESS=0 SLOWMO=0.3 bin/run-dummy-tests system rails-7.2
 - Enrich generator tests (assert duplicate-prevention and content details).
 - Introduce a minimal JS unit-test layer when it adds clear value (e.g., jsdom + vitest).
 - Add representative system scenarios (Turbo Frame/Stream basics) as the next step.
-

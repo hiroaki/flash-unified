@@ -124,7 +124,7 @@ jobs:
 
       - name: Run generator tests via helper (suite-first)
         run: |
-          bin/run-dummy-tests generators ${APPRAISAL}
+          bin/test generators ${APPRAISAL}
 
   system-tests:
     name: System tests (Appraisal matrix)
@@ -173,4 +173,4 @@ jobs:
 
       - name: Run system tests via helper (suite-first)
         run: |
-          bin/run-dummy-tests system ${APPRAISAL}
+          bin/test system ${APPRAISAL}
