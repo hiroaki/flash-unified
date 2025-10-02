@@ -13,20 +13,19 @@ jobs:
   unit-tests:
     name: Unit tests (matrix)
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        ruby: [3.3]
-        appraisal: [rails-8.0]
+    env:
+      APPRAISAL: rails-8.0
+      RUBY_VERSION: 3.3
     steps:
       - uses: actions/checkout@v4
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: ${{ matrix.ruby }}
+          ruby-version: ${{ env.RUBY_VERSION }}
           bundler-cache: true
       - name: Install gems for appraisal
         run: |
-          bundle exec appraisal "${{ matrix.appraisal }}" bundle install --jobs 1 --retry 2
+          bundle exec appraisal "${APPRAISAL}" bundle install --jobs 1 --retry 2
       - name: Run unit tests only
         run: |
-          APPRAISAL="${{ matrix.appraisal }}" bin/test unit
+          APPRAISAL="${APPRAISAL}" bin/test unit
