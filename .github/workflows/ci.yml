@@ -1,5 +1,11 @@
 name: CI
 
+concurrency:
+  # Group by workflow name and the pull request number when present, otherwise the branch ref.
+  # This ensures older runs for the same PR/branch are cancelled when a new run starts.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [ develop ]
