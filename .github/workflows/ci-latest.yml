@@ -8,30 +8,24 @@ on:
   push:
     branches: [ develop ]
   workflow_dispatch:
-    inputs:
-      ruby:
-        description: 'Ruby version'
-        required: true
-        default: '3.3'
-      appraisal:
-        description: 'Appraisal name (gemfile key)'
-        required: true
-        default: 'rails-8.0'
 
 jobs:
   latest:
     name: Run bin/test on latest combo
     runs-on: ubuntu-latest
+    env:
+      APPRAISAL: 'rails-8.0'
+      RUBY_VERSION: '3.3'
     steps:
       - uses: actions/checkout@v4
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: ${{ github.event.inputs.ruby }}
+          ruby-version: ${{ env.RUBY_VERSION }}
           bundler-cache: true
       - name: Install gems for appraisal
         run: |
-          bundle exec appraisal "${{ github.event.inputs.appraisal }}" bundle install --jobs 1 --retry 2
+          bundle exec appraisal "${APPRAISAL}" bundle install --jobs 1 --retry 2
       - name: Run bin/test
         run: |
-          APPRAISAL="${{ github.event.inputs.appraisal }}" bin/test
+          APPRAISAL="${APPRAISAL}" bin/test
