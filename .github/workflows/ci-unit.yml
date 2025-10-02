@@ -16,7 +16,7 @@ jobs:
     strategy:
       matrix:
         ruby: [3.3]
-        appraisal: [rails_8.0]
+        appraisal: [rails-8.0]
     steps:
       - uses: actions/checkout@v4
       - name: Setup Ruby

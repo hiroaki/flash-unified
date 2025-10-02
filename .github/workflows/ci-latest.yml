@@ -16,7 +16,7 @@ on:
       appraisal:
         description: 'Appraisal name (gemfile key)'
         required: true
-        default: 'rails_8.0'
+        default: 'rails-8.0'
 
 jobs:
   latest:
