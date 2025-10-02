@@ -1,0 +1,32 @@
+name: CI - unit
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+    branches: [ develop ]
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    name: Unit tests (matrix)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ruby: [3.3]
+        appraisal: [rails-8.0]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - name: Install gems for appraisal
+        run: |
+          bundle exec appraisal "${{ matrix.appraisal }}" bundle install --jobs 1 --retry 2
+      - name: Run unit tests only
+        run: |
+          APPRAISAL="${{ matrix.appraisal }}" bin/test unit

@@ -5,8 +5,8 @@ Rake::TestTask.new(:test) do |t|
   t.libs << "test"
   t.libs << "lib"
 
-  # Run only unit-level tests by default (pure Ruby, no Rails boot).
-  # Use TEST=... for ad-hoc files, or rake test:generators / test:system for other layers.
+  # Run unit-layer tests by default. Use TEST=... for ad-hoc files,
+  # or rake test:generators / test:system for other layers.
   t.test_files = FileList[
     "test/unit/**/*_test.rb",
     "test/lib/**/*_test.rb"
@@ -23,8 +23,7 @@ namespace :test do
   Rake::TestTask.new(:unit) do |t|
     t.libs << "test"
     t.libs << "lib"
-    # Explicitly include unit-layer tests only (pure Ruby, no Rails boot).
-    # Do not include top-level tests here, as some require test_helper (Rails).
+    # Explicitly include unit-layer tests only.
     t.test_files = FileList[
       "test/unit/**/*_test.rb",
       "test/lib/**/*_test.rb"
@@ -35,8 +34,7 @@ namespace :test do
   Rake::TestTask.new(:generators) do |t|
     t.libs << "test"
     t.libs << "lib"
-    # Scope strictly to generator tests. These intentionally load test/test_helper
-    # (which boots the dummy app) to exercise Rails::Generators behavior.
+    # Scope strictly to generator tests.
     t.test_files = FileList[
       "test/generators/**/*_test.rb"
     ]
