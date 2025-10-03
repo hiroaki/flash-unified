@@ -37,4 +37,33 @@ class FlashUnifiedPagesSystemTest < ApplicationSystemTestCase
     visit "/flash/missing_template"
     assert_selector "[data-flash-message]", text: "Warn without template"
   end
+
+  test "auto init can be disabled via data attribute" do
+    visit "/flash/auto_off"
+    # Messages should not be rendered automatically
+    assert_no_selector "[data-flash-message]", text: "Auto init disabled alert"
+    assert_no_selector "[data-flash-message]", text: "Auto init disabled notice"
+    # Manually render using the exposed hook on layout
+    page.execute_script("window.__manualRenderFlash__()")
+    assert_selector "[data-flash-message]", text: "Auto init disabled alert"
+    assert_selector "[data-flash-message]", text: "Auto init disabled notice"
+  end
+
+  test "network listeners do not add fallback when messages already present" do
+    visit "/flash/events_with_message"
+    # Initial server message should render once
+    assert_selector "[data-flash-message]", text: "Existing alert", count: 1
+    # Trigger a network error; should NOT add fallback since a message is already present
+    click_on "Simulate network error"
+    assert_no_selector "[data-flash-message]", text: I18n.t("http_status_messages.network")
+    assert_selector "[data-flash-message]", text: "Existing alert", count: 1
+  end
+
+  test "clearFlashMessages removes rendered nodes" do
+    visit "/flash/clear"
+    assert_selector "[data-flash-message]", text: "Clear me (alert)"
+    assert_selector "[data-flash-message]", text: "Clear me (notice)"
+    click_on "Clear All"
+    assert_no_selector "[data-flash-message]"
+  end
 end

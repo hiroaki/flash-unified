@@ -31,9 +31,33 @@ class FlashPagesController < ApplicationController
     flash.now[:warning] = 'Warn without template'
   end
 
+  # For testing auto-init opt-out: server embeds messages but client should not auto-render
+  def auto_off
+    flash.now[:alert] = 'Auto init disabled alert'
+    flash.now[:notice] = 'Auto init disabled notice'
+  end
+
+  # For testing duplicate prevention on network error listeners
+  def events_with_message
+    flash.now[:alert] = 'Existing alert'
+  end
+
+  # For testing clearFlashMessages()
+  def clear
+    flash.now[:alert] = 'Clear me (alert)'
+    flash.now[:notice] = 'Clear me (notice)'
+  end
+
   private
 
   def resolve_layout
-    action_name == 'missing_template' ? 'flash_unified_test_nowarning' : 'flash_unified_test'
+    case action_name
+    when 'missing_template'
+      'flash_unified_test_nowarning'
+    when 'auto_off'
+      'flash_unified_auto_off'
+    else
+      'flash_unified_test'
+    end
   end
 end

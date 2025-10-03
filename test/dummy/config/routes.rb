@@ -19,6 +19,9 @@ Rails.application.routes.draw do
     post 'stream_update',    to: 'flash_pages#stream_update'
     get  'events',           to: 'flash_pages#events'
     get  'missing_template', to: 'flash_pages#missing_template'
+    get  'auto_off',         to: 'flash_pages#auto_off'
+    get  'events_with_message', to: 'flash_pages#events_with_message'
+    get  'clear',            to: 'flash_pages#clear'
   end
 
   # Defines the root path route ("/")

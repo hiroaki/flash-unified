@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html data-flash-unified-auto-init="false">
+  <head>
+    <title>FlashUnified Auto Off</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <%= stylesheet_link_tag "application" %>
+    <%= javascript_include_tag "turbo", type: "module" %>
+    <script type="module">
+      // Note: no auto.js import here to prove opt-out works
+      import { renderFlashMessages } from "<%= asset_path('flash_unified/flash_unified.js') %>";
+      // Expose manual render hook for tests
+      window.__manualRenderFlash__ = () => renderFlashMessages();
+    </script>
+  </head>
+  <body>
+    <%= flash_global_storage %>
+    <%= flash_templates %>
+    <%= flash_general_error_messages %>
+    <%= flash_container %>
+
+    <%= yield %>
+  </body>
+  </html>
