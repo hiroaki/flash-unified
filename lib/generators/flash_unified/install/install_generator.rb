@@ -53,12 +53,22 @@ module FlashUnified
             Quick start (auto init):
 
               import "flash_unified/auto"; // Sets up Turbo listeners and renders on load
+              // Configure via <html data-flash-unified-*>:
+              //   data-flash-unified-auto-init="false" (opt-out)
+              //   data-flash-unified-debug="true" (debug logs)
+              //   data-flash-unified-enable-network-errors="true" (install Turbo network error listeners)
 
             Manual control:
 
               import { renderFlashMessages, appendMessageToStorage } from "flash_unified";
               import { installTurboRenderListeners } from "flash_unified/turbo_helpers";
               installTurboRenderListeners();
+
+            Network helpers (optional, framework-agnostic):
+
+              import { notifyNetworkError, notifyHttpError } from "flash_unified/network_helpers";
+              // notifyNetworkError();
+              // notifyHttpError(413);
 
           - Asset pipeline (Propshaft / Sprockets): the engine adds its `app/javascript` to the asset paths; import via an inline module script in your layout's <head>:
 

@@ -62,7 +62,11 @@ FlashUnified はクライアント（JavaScript）とサーバー（ビュー・
 
 ジェネレータを実行すると、以下のファイルがホストアプリにコピーされます：
 
-- JavaScript: `app/javascript/flash_unified/flash_unified.js`
+- JavaScript（ES Modules）:
+  - `app/javascript/flash_unified/flash_unified.js`（コア機能）
+  - `app/javascript/flash_unified/auto.js`（自動初期化エントリ）
+  - `app/javascript/flash_unified/turbo_helpers.js`（Turbo 連携ヘルパー）
+  - `app/javascript/flash_unified/network_helpers.js`（ネットワーク/HTTP エラーヘルパー）
 - ビュー（パーシャル）: `app/views/flash_unified/` に以下をコピー
   - `_templates.html.erb`（クライアントが使う `<template>` 要素）
   - `_storage.html.erb`（メッセージ埋め込みのための非表示ストレージ要素）
@@ -81,45 +85,86 @@ bin/rails generate flash_unified:install
 
 デフォルトでは既存ファイルを上書きしません。すでにパーシャルやロケールを管理している場合、ジェネレータはそれらをスキップします。
 
-### 2. クライアントの初期化
 
-ページロード時に一度だけ `initializeFlashMessageSystem` を呼び出してください。
+### 2. 初期化スタイルを選ぶ
 
-#### Importmap
+簡単に始められる自動初期化（auto エントリ）か、より細かな制御のための手動配線のどちらかを選べます。
 
-1. `config/importmap.rb` にピンを追加します：
+#### Importmap のピン
+
+`config/importmap.rb` に以下を追加します：
 
 ```ruby
 pin "flash_unified", to: "flash_unified/flash_unified.js"
+pin "flash_unified/auto", to: "flash_unified/auto.js"
+pin "flash_unified/turbo_helpers", to: "flash_unified/turbo_helpers.js"
+pin "flash_unified/network_helpers", to: "flash_unified/network_helpers.js"
 ```
 
-2. JavaScript エントリポイント（例: `app/javascript/application.js`）で初期化します：
+#### かんたん導入（自動初期化）
+
+JS エントリポイント（例: `app/javascript/application.js`）で次を読み込みます：
 
 ```js
-import { initializeFlashMessageSystem } from "flash_unified";
+import "flash_unified/auto"; // Turbo 連携と初回描画を自動で行います
+```
 
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initializeFlashMessageSystem);
-} else {
-  initializeFlashMessageSystem();
-}
+動作は `<html>` の data 属性で切り替えできます：
+
+- `data-flash-unified-auto-init="false"` — 自動初期化を無効化
+- `data-flash-unified-debug="true"` — デバッグログを有効化
+- `data-flash-unified-enable-network-errors="true"` — Turbo 向けネットワークエラーリスナーも有効化
+
+例：
+
+```erb
+<html data-flash-unified-debug="true" data-flash-unified-enable-network-errors="true">
+```
+
+#### 手動制御（高度な構成向け）
+
+- Turbo イベントに合わせて最小限の描画を行う：
+
+```js
+import { renderFlashMessages } from "flash_unified";
+import { installTurboRenderListeners } from "flash_unified/turbo_helpers";
+
+installTurboRenderListeners();
+// 必要なら初回だけ自分で呼ぶ:
+// renderFlashMessages();
+```
+
+- 任意のタイミングでメッセージを出す（自前 JS から）：
+
+```js
+import { appendMessageToStorage, renderFlashMessages } from "flash_unified";
+
+appendMessageToStorage("保存しました", "notice");
+renderFlashMessages();
+```
+
+- ネットワーク/HTTP エラー用ヘルパー（フレームワーク非依存 API）：
+
+```js
+import { notifyNetworkError, notifyHttpError } from "flash_unified/network_helpers";
+
+notifyNetworkError(); // ネットワーク系エラーの汎用メッセージをセットして描画
+notifyHttpError(413); // HTTP ステータス別のメッセージをセットして描画
 ```
 
 #### アセットパイプライン（Propshaft / Sprockets）
 
-このライブラリは ES Module として提供されます。アセットパイプライン（Propshaft / Sprockets）で利用する場合は、レイアウトに module スクリプトを記述し、`asset_path` 経由で読み込んで初期化してください：
+レイアウトの module スクリプトで auto エントリを読み込みます：
 
 ```erb
+<link rel="modulepreload" href="<%= asset_path('flash_unified/auto.js') %>">
 <script type="module">
-  import { initializeFlashMessageSystem } from "<%= asset_path('flash_unified/flash_unified.js') %>";
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initializeFlashMessageSystem);
-  } else {
-    initializeFlashMessageSystem();
-  }
+  import "<%= asset_path('flash_unified/auto.js') %>";
+  <!-- 必要に応じて <html> の data-* 属性で挙動を切り替え -->
 </script>
 ```
+
+
 
 ## セットアップ（サーバーサイド）
 
@@ -177,23 +222,19 @@ if (document.readyState === "loading") {
 
 ## JavaScript API と拡張
 
-本ライブラリのクライアントは ES Module として次の関数をエクスポートしています（`app/javascript/flash_unified/flash_unified.js`）。
+JavaScript は最小コアとオプションのヘルパー群に分割されています。必要なものだけを選んで使えます。
 
-- `initializeFlashMessageSystem()`
-  - 初期化を行います。
-  - 監視するイベント：`DOMContentLoaded`、`turbo:load`、`turbo:frame-load`、`turbo:render`、`turbo:submit-end`、`turbo:after-stream-render`、`turbo:fetch-request-error`。
-- `renderFlashMessages()`
-  - ストレージに埋め込まれたメッセージをテンプレートで整形してコンテナに描画します。このとき、そのストレージは DOM から削除します（重複表示を防ぐため）。
-- `appendMessageToStorage(message, type = 'alert')`
-  - グローバルなストレージ（`#flash-storage`）に message を追記します。
-- `clearFlashMessages(message?)`
-  - 引数なしの場合はコンテナ内のフラッシュをすべて削除します（コンテナ自体は残ります）。引数に完全一致するテキストを渡すと、そのメッセージだけ削除します。
-- `handleFlashPayload(payload)` （実験的機能）
-  - `{ type, message }[]` または `{ messages: { type, message }[] }` 形式のペイロードを受け取り、ストレージに追加して描画します。
-- `enableMutationObserver(options = { debug: false })` （実験的機能）
-  - 追加の監視が必要な場合に MutationObserver を有効化し、DOM への挿入を検知して自動描画します（通常は不要）。
+### コア（`flash_unified`）
 
-### カスタムイベント（実験的機能）
+- `renderFlashMessages()` — 非表示ストレージを走査してコンテナに描画し、ストレージを削除
+- `appendMessageToStorage(message, type = 'alert')` — グローバルストレージ（`#flash-storage`）に追記
+- `clearFlashMessages(message?)` — 描画済みメッセージを全削除、または完全一致テキストのみ削除
+- `handleFlashPayload(payload)` — `{ type, message }[]` または `{ messages: [...] }` を受け取り、追記して描画
+- `enableMutationObserver(options = {})` — ストレージ/テンプレートの挿入を監視して描画（任意）
+- `setupCustomEventListener(debug = false)` — `flash-unified:messages` を購読してペイロード処理
+- `anyFlashStorageHasMessage()` — ストレージ内に既存メッセージがあるか判定するユーティリティ
+
+### カスタムイベント
 
 任意のタイミングでメッセージを表示したい場合は、ドキュメントに `flash-unified:messages` イベントをディスパッチしてください。
 
@@ -214,14 +255,25 @@ document.dispatchEvent(new CustomEvent('flash-unified:messages', {
 }));
 ```
 
-### ネットワーク・HTTP エラー時のメッセージ（実験的機能）
+### Turbo 連携ヘルパー（`flash_unified/turbo_helpers`）
 
-`turbo:submit-end` と `turbo:fetch-request-error` をフックして、以下の挙動を行います。ただし、いずれも既にストレージに何らかのメッセージがあるとき、またはコンテナに子要素が存在する場合は重複表示を避けるためスキップします。
+- `installTurboRenderListeners(debug = false)` — Turbo のライフサイクル（Drive/Frame/Stream）に合わせて描画
+- `setupTurboStreamEvents(debugLog)` — `turbo:after-stream-render` を発火してストリーム後に描画
+- `setupFlashUnifiedForTurbo(debug = false)` — Turbo リスナーとカスタムイベント処理をまとめて設定
 
-- HTTP ステータス `>= 400` の場合は、`#general-error-messages li[data-status="<status>"]` から対応する文言を探し、見つかれば `alert` として表示します。
-- サーバーからレスポンスが得られない（ネットワーク/プロキシ遮断）場合は `data-status="network"` の文言を参照します。
+### ネットワーク/HTTP エラー用ヘルパー（`flash_unified/network_helpers`）
 
-なおこの機能で利用するメッセージのために `config/locales/http_status_messages.*.yml` を収録しています。
+- `notifyNetworkError()` — `#general-error-messages` から汎用ネットワークエラー文言を引いて描画
+- `notifyHttpError(status)` — HTTP ステータス別の文言を引いて描画
+- `handleFlashErrorStatus(status)` — 下位 API。ストレージ/可視コンテナに既存メッセージがある場合は重複を避けます
+
+### 自動初期化エントリ（`flash_unified/auto`）
+
+インポートすると DOM 準備後に Turbo 連携の初期化を自動実行します。`<html>` の data 属性で制御します：
+
+- `data-flash-unified-auto-init="false"` — 自動初期化を無効化
+- `data-flash-unified-debug="true"` — デバッグログを有効化
+- `data-flash-unified-enable-network-errors="true"` — Turbo 向けネットワークエラーリスナーも有効化
 
 ## 開発について
 

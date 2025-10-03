@@ -6,14 +6,10 @@ after_bundle do
   # Inject module script into application layout to import via asset pipeline
   layout_file = 'app/views/layouts/application.html.erb'
   module_script = <<~ERB
-    <link rel="modulepreload" href="<%= asset_path('flash_unified/flash_unified.js') %>">
+    <link rel="modulepreload" href="<%= asset_path('flash_unified/auto.js') %>">
     <script type="module">
-      import { initializeFlashMessageSystem } from "<%= asset_path('flash_unified/flash_unified.js') %>";
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initializeFlashMessageSystem);
-      } else {
-        initializeFlashMessageSystem();
-      }
+      import "<%= asset_path('flash_unified/auto.js') %>";
+      <!-- Optionally control via <html data-flash-unified-*> attributes -->
     </script>
   ERB
 
@@ -39,7 +35,7 @@ after_bundle do
       end
     end
     # Insert module script once (prefer inside <head>)
-    unless File.read(layout_file).include?('initializeFlashMessageSystem')
+    unless File.read(layout_file).include?('flash_unified/auto')
       head_content = File.read(layout_file)
       if head_content =~ /<\/head>/
         gsub_file layout_file, /<\/head>/, module_script + "\n</head>"

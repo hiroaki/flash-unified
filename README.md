@@ -60,7 +60,11 @@ FlashUnified consists of a client (JavaScript) and server (view helpers).
 
 Running the generator copies the following files into your host application under the same relative paths:
 
-- JavaScript: `app/javascript/flash_unified/flash_unified.js`
+- JavaScript (ES modules):
+    - `app/javascript/flash_unified/flash_unified.js` (core utilities)
+    - `app/javascript/flash_unified/auto.js` (optional auto entry)
+    - `app/javascript/flash_unified/turbo_helpers.js` (optional Turbo integration helpers)
+    - `app/javascript/flash_unified/network_helpers.js` (optional network/HTTP error helpers)
 - View partials to `app/views/flash_unified/`:
     - `_templates.html.erb` (the `<template>` skeletons the client uses)
     - `_storage.html.erb` (per-page hidden storage element)
@@ -79,47 +83,84 @@ bin/rails generate flash_unified:install
 
 By default the generator will not overwrite existing files. If you already have custom partials or locale files they will be left in place.
 
-### 2. Initialize the client
+### 2. Choose your initialization style
 
-Call `initializeFlashMessageSystem` once when the page loads.
+You can use a convenient auto-initialize entry, or wire things manually for full control.
 
-#### Importmap
+#### Importmap pins
 
-1. Add a pin to `config/importmap.rb`:
+Add pins to `config/importmap.rb`:
 
 ```ruby
 pin "flash_unified", to: "flash_unified/flash_unified.js"
+pin "flash_unified/auto", to: "flash_unified/auto.js"
+pin "flash_unified/turbo_helpers", to: "flash_unified/turbo_helpers.js"
+pin "flash_unified/network_helpers", to: "flash_unified/network_helpers.js"
 ```
 
-2. Import and initialize it from your JavaScript entrypoint (for example `app/javascript/application.js`):
+#### Quick start (auto entry)
+
+In your JS entrypoint (for example `app/javascript/application.js`):
 
 ```js
-import { initializeFlashMessageSystem } from "flash_unified";
-if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initializeFlashMessageSystem);
-} else {
-    initializeFlashMessageSystem();
-}
-// initializeFlashMessageSystem() is idempotent; calling once is enough.
-// For verbose logs during development, pass true: initializeFlashMessageSystem(true)
+import "flash_unified/auto"; // Sets up Turbo listeners and renders on load
+```
+
+Configuration via HTML data attributes on the root `<html>` element:
+
+- `data-flash-unified-auto-init="false"` — opt-out of auto init
+- `data-flash-unified-debug="true"` — enable debug logging
+- `data-flash-unified-enable-network-errors="true"` — also install Turbo-specific network error listeners
+
+Example:
+
+```erb
+<html data-flash-unified-debug="true" data-flash-unified-enable-network-errors="true">
+```
+
+#### Manual control (recommended for advanced setups)
+
+- Minimal render on Turbo events:
+
+```js
+import { renderFlashMessages } from "flash_unified";
+import { installTurboRenderListeners } from "flash_unified/turbo_helpers";
+
+installTurboRenderListeners();
+// Optionally, do an initial render explicitly if you prefer:
+// renderFlashMessages();
+```
+
+- Programmatic messages (from your own JS):
+
+```js
+import { appendMessageToStorage, renderFlashMessages } from "flash_unified";
+
+appendMessageToStorage("Saved", "notice");
+renderFlashMessages();
+```
+
+- Network/HTTP error helpers (framework-agnostic API):
+
+```js
+import { notifyNetworkError, notifyHttpError } from "flash_unified/network_helpers";
+
+// e.g., in your global fetch() wrapper
+notifyNetworkError();          // Sets a generic network error and renders
+notifyHttpError(413);          // Sets an HTTP-status-specific message and renders
 ```
 
 #### Asset pipeline (Propshaft / Sprockets)
 
-This library ships as an ES module. When using the asset pipeline (Propshaft / Sprockets), add an inline module script to your layout, import it via `asset_path`, and initialize it:
+When using the asset pipeline, import the auto entry via `asset_path` with a module script in your layout:
 
 ```erb
+<link rel="modulepreload" href="<%= asset_path('flash_unified/auto.js') %>">
 <script type="module">
-    import { initializeFlashMessageSystem } from "<%= asset_path('flash_unified/flash_unified.js') %>";
-
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", initializeFlashMessageSystem);
-    } else {
-        initializeFlashMessageSystem();
-    }
-    // Supports Turbo Frames/Streams out of the box via internal listeners
+  import "<%= asset_path('flash_unified/auto.js') %>";
+  // To opt out or enable debug/network, set data-* attributes on <html>
 </script>
-``` 
+```
 
 ## Setup (server-side)
 
@@ -177,23 +218,19 @@ The client inserts the message text into `.flash-message-text` inside the templa
 
 ## JavaScript API
 
-The client is published as an ES module and exports the following functions (see `app/javascript/flash_unified/flash_unified.js`):
+The JavaScript is split into a minimal core plus optional helpers. Pick only what you need.
 
-- `initializeFlashMessageSystem(debug = false)`
-    - Initializes the system. Idempotent.
-    - Listens to: `DOMContentLoaded`, `turbo:load`, `turbo:frame-load`, `turbo:render`, `turbo:submit-end`, `turbo:after-stream-render`, `turbo:fetch-request-error`.
-- `renderFlashMessages()`
-    - Reads pending messages from storage, renders them into the container using templates, then removes the consumed storage node(s).
-- `appendMessageToStorage(message, type = 'alert')`
-    - Appends a single item into the global storage (`#flash-storage`).
-- `clearFlashMessages(message?)`
-    - Without an argument, removes all flash message elements from containers (leaves the container intact). With a string, removes only messages whose text matches exactly.
-- `handleFlashPayload(payload)` (experimental)
-    - Accepts `{ type, message }[]` or `{ messages: { type, message }[] }`, appends to storage, then renders.
-- `enableMutationObserver(options = { debug: false })` (experimental)
-    - Enables a MutationObserver to trigger rendering on relevant DOM insertions (normally not needed).
+### Core (from `flash_unified`)
 
-### Custom events (experimental)
+- `renderFlashMessages()` — scan hidden storage, render into the visible container, then remove storage nodes
+- `appendMessageToStorage(message, type = 'alert')` — append a message into the global storage (`#flash-storage`)
+- `clearFlashMessages(message?)` — clear all rendered messages, or only those whose text matches exactly
+- `handleFlashPayload(payload)` — accept `{ type, message }[]` or `{ messages: [...] }`, append and render
+- `enableMutationObserver(options = {})` — optional MutationObserver that reacts to inserted storage/templates
+- `setupCustomEventListener(debug = false)` — listen for `flash-unified:messages` custom events and handle payloads
+- `anyFlashStorageHasMessage()` — utility used to detect pre-existing messages in storage
+
+### Custom events
 
 Dispatch the `flash-unified:messages` event on `document` to push messages at any time:
 
@@ -212,12 +249,25 @@ document.dispatchEvent(new CustomEvent('flash-unified:messages', {
 }));
 ```
 
-### Network and HTTP error messages (experimental)
+### Turbo integration helpers (from `flash_unified/turbo_helpers`)
 
-We hook into `turbo:submit-end` and `turbo:fetch-request-error` and apply the following rules. If storage already contains any messages or the container already has children, auto-insertion is skipped to avoid duplicates.
+- `installTurboRenderListeners(debug = false)` — render on Turbo lifecycle events (Drive, Frame, Stream)
+- `setupTurboStreamEvents(debugLog)` — advanced hook to dispatch `turbo:after-stream-render` and render after streams
+- `setupFlashUnifiedForTurbo(debug = false)` — convenience: install Turbo listeners and a custom payload handler
 
-- For HTTP status codes `>= 400`, look up the localized message under `#general-error-messages li[data-status="<status>"]` and, if found, display it as an `alert`.
-- If no server response is available (network/proxy error), fall back to `data-status="network"`.
+### Network/HTTP error helpers (from `flash_unified/network_helpers`)
+
+- `notifyNetworkError()` — add a generic network error (looks up text in `#general-error-messages`) and render
+- `notifyHttpError(status)` — add an HTTP-status-specific message and render
+- `handleFlashErrorStatus(status)` — lower-level function used by the helpers; respects existing storage/visible messages
+
+### Auto entry (from `flash_unified/auto`)
+
+When imported, it initializes Turbo integration automatically on DOM ready. Configure with `<html>` data attributes:
+
+- `data-flash-unified-auto-init="false"` — disable auto
+- `data-flash-unified-debug="true"` — enable debug logs
+- `data-flash-unified-enable-network-errors="true"` — also install Turbo-specific network error listeners
 
 ## Locale files
 

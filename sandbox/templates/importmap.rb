@@ -28,8 +28,8 @@ after_bundle do
     create_file importmap_file, "pin \"application\"\n"
   end
 
-  # Pin the module (insert after application pin if present, otherwise append)
-  pin_snippet = "\n# flash_unified\npin \"flash_unified\", to: \"flash_unified/flash_unified.js\"\n"
+  # Pin the modules (insert after application pin if present, otherwise append)
+  pin_snippet = "\n# flash_unified\npin \"flash_unified\", to: \"flash_unified/flash_unified.js\"\npin \"flash_unified/auto\", to: \"flash_unified/auto.js\"\npin \"flash_unified/turbo_helpers\", to: \"flash_unified/turbo_helpers.js\"\npin \"flash_unified/network_helpers\", to: \"flash_unified/network_helpers.js\"\n"
   content = File.read(importmap_file)
   unless content.include?('pin "flash_unified"')
     if content =~ /pin \"application\".*\n/
@@ -39,18 +39,12 @@ after_bundle do
     end
   end
 
-  # Initialize from application.js (idempotent)
+  # Initialize from application.js via auto entry (idempotent)
   init_snippet = <<~JS
-    import { initializeFlashMessageSystem } from "flash_unified";
-
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", initializeFlashMessageSystem);
-    } else {
-      initializeFlashMessageSystem();
-    }
+    import "flash_unified/auto";
   JS
   app_js_content = File.read(js_entry)
-  unless app_js_content.include?('initializeFlashMessageSystem')
+  unless app_js_content.include?('flash_unified/auto')
     append_to_file js_entry, init_snippet
   end
 
