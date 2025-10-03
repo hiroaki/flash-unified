@@ -20,8 +20,8 @@
     }
 */
 
-import { renderFlashMessages, handleFlashPayload } from './flash_unified.js';
-import { handleFlashErrorStatus } from './network_helpers.js';
+import { renderFlashMessages, processMessagePayload } from './flash_unified.js';
+import { resolveAndAppendErrorMessage } from './network_helpers.js';
 
 /* Turbo関連のイベントリスナーを設定します。
   ページ遷移やフレーム更新時に自動的にフラッシュメッセージを描画します。
@@ -57,7 +57,7 @@ function installTurboRenderListeners(debugFlag = false) {
   });
 
   // Turbo Stream events
-  setupTurboStreamEvents(debugLog);
+  installTurboStreamEvents(debugLog);
 
   // Initial render if not already done
   if (document.readyState === 'loading') {
@@ -77,7 +77,8 @@ function installTurboRenderListeners(debugFlag = false) {
   Setup custom turbo:after-stream-render event for Turbo Stream updates.
   Hooks into turbo:before-stream-render to dispatch event after rendering is done.
 */
-function setupTurboStreamEvents(debugLog) {
+// Internal: used by installTurboRenderListeners
+function installTurboStreamEvents(debugLog) {
   // Create custom event for after stream render
   const afterRenderEvent = new Event("turbo:after-stream-render");
 
@@ -102,7 +103,7 @@ function setupTurboStreamEvents(debugLog) {
   ---
   Sets up Turbo listeners + custom event listeners in one call.
 */
-function setupFlashUnifiedForTurbo(debugFlag = false) {
+function installTurboIntegration(debugFlag = false) {
   const root = document.documentElement;
   if (root.hasAttribute('data-flash-unified-initialized')) {
     return; // idempotent init
@@ -116,11 +117,11 @@ function setupFlashUnifiedForTurbo(debugFlag = false) {
   // Install Turbo listeners
   installTurboRenderListeners(debugFlag);
 
-  // Setup custom event listener (uses core handleFlashPayload)
+  // Setup custom event listener (uses core processMessagePayload)
   document.addEventListener('flash-unified:messages', function(event) {
     debugLog('flash-unified:messages');
     try {
-      handleFlashPayload(event.detail);
+      processMessagePayload(event.detail);
     } catch (e) {
       console.error('[FlashUnified] Failed to handle custom payload', e);
     }
@@ -129,8 +130,7 @@ function setupFlashUnifiedForTurbo(debugFlag = false) {
 
 export {
   installTurboRenderListeners,
-  setupTurboStreamEvents,
-  setupFlashUnifiedForTurbo
+  installTurboIntegration
 };
 
 /* ネットワークエラー関連のイベントリスナーを設定します。
@@ -160,17 +160,17 @@ function installNetworkErrorListeners(debugFlag = false) {
     debugLog('turbo:submit-end');
     const res = event.detail.fetchResponse;
     if (res === undefined) {
-      handleFlashErrorStatus('network');
+      resolveAndAppendErrorMessage('network');
       console.warn('[FlashUnified] No response received from server. Possible network or proxy error.');
     } else {
-      handleFlashErrorStatus(res.statusCode);
+      resolveAndAppendErrorMessage(res.statusCode);
     }
     renderFlashMessages();
   });
 
   document.addEventListener('turbo:fetch-request-error', function(_event) {
     debugLog('turbo:fetch-request-error');
-    handleFlashErrorStatus('network');
+    resolveAndAppendErrorMessage('network');
     renderFlashMessages();
   });
 }

@@ -37,7 +37,7 @@
   - Use individual modules for full manual control
 */
 
-import { setupFlashUnifiedForTurbo, installNetworkErrorListeners } from './turbo_helpers.js';
+import { installTurboIntegration, installNetworkErrorListeners } from './turbo_helpers.js';
 
 if (typeof document !== 'undefined') {
   const root = document.documentElement;
@@ -49,8 +49,8 @@ if (typeof document !== 'undefined') {
     const enableNetworkErrors = root.getAttribute('data-flash-unified-enable-network-errors') === 'true';
 
     const init = async () => {
-      // Set up Turbo integration and custom event handling
-      setupFlashUnifiedForTurbo(debug);
+  // Set up Turbo integration and custom event handling
+  installTurboIntegration(debug);
 
       // Optionally install network error helpers
       if (enableNetworkErrors) {

@@ -23,7 +23,7 @@
     // installNetworkErrorListeners(true); // debug=true
 */
 
-import { renderFlashMessages, appendMessageToStorage, anyFlashStorageHasMessage } from './flash_unified.js';
+import { renderFlashMessages, appendMessageToStorage, storageHasMessages } from './flash_unified.js';
 
 /* エラーステータスに応じた汎用メッセージをストレージへ追加します。
   既にストレージにメッセージが存在する場合は何もしません。
@@ -32,9 +32,9 @@ import { renderFlashMessages, appendMessageToStorage, anyFlashStorageHasMessage 
   Add a general error message to storage based on status ('network' or 4xx/5xx).
   If any storage already has messages, this is a no-op. Looks up text in #general-error-messages.
 */
-function handleFlashErrorStatus(status) {
+function resolveAndAppendErrorMessage(status) {
   // If any flash storage already contains messages, do not override it
-  if (anyFlashStorageHasMessage()) return;
+  if (storageHasMessages()) return;
 
   // Determine lookup key
   let key;
@@ -65,17 +65,17 @@ function handleFlashErrorStatus(status) {
 }
 
 function notifyNetworkError() {
-  handleFlashErrorStatus('network');
+  resolveAndAppendErrorMessage('network');
   renderFlashMessages();
 }
 
 function notifyHttpError(status) {
-  handleFlashErrorStatus(status);
+  resolveAndAppendErrorMessage(status);
   renderFlashMessages();
 }
 
 export {
-  handleFlashErrorStatus,
+  resolveAndAppendErrorMessage,
   notifyNetworkError,
   notifyHttpError
 };

@@ -60,11 +60,11 @@ FlashUnified consists of a client (JavaScript) and server (view helpers).
 
 Running the generator copies the following files into your host application under the same relative paths:
 
-- JavaScript (ES modules):
-    - `app/javascript/flash_unified/flash_unified.js` (core utilities)
-    - `app/javascript/flash_unified/auto.js` (optional auto entry)
-    - `app/javascript/flash_unified/turbo_helpers.js` (optional Turbo integration helpers)
-    - `app/javascript/flash_unified/network_helpers.js` (optional network/HTTP error helpers)
+- JavaScript (ES modules) to `app/javascript/flash_unified/`:
+    - `flash_unified.js` (core utilities)
+    - `auto.js` (optional auto entry)
+    - `turbo_helpers.js` (optional Turbo integration helpers)
+    - `network_helpers.js` (optional network/HTTP error helpers)
 - View partials to `app/views/flash_unified/`:
     - `_templates.html.erb` (the `<template>` skeletons the client uses)
     - `_storage.html.erb` (per-page hidden storage element)
@@ -158,7 +158,6 @@ When using the asset pipeline, import the auto entry via `asset_path` with a mod
 <link rel="modulepreload" href="<%= asset_path('flash_unified/auto.js') %>">
 <script type="module">
   import "<%= asset_path('flash_unified/auto.js') %>";
-  // To opt out or enable debug/network, set data-* attributes on <html>
 </script>
 ```
 
@@ -225,10 +224,10 @@ The JavaScript is split into a minimal core plus optional helpers. Pick only wha
 - `renderFlashMessages()` — scan hidden storage, render into the visible container, then remove storage nodes
 - `appendMessageToStorage(message, type = 'alert')` — append a message into the global storage (`#flash-storage`)
 - `clearFlashMessages(message?)` — clear all rendered messages, or only those whose text matches exactly
-- `handleFlashPayload(payload)` — accept `{ type, message }[]` or `{ messages: [...] }`, append and render
-- `enableMutationObserver(options = {})` — optional MutationObserver that reacts to inserted storage/templates
-- `setupCustomEventListener(debug = false)` — listen for `flash-unified:messages` custom events and handle payloads
-- `anyFlashStorageHasMessage()` — utility used to detect pre-existing messages in storage
+- `processMessagePayload(payload)` — accept `{ type, message }[]` or `{ messages: [...] }`, append and render
+- `startMutationObserver(options = {})` — optional MutationObserver that reacts to inserted storage/templates
+- `installCustomEventListener(debug = false)` — listen for `flash-unified:messages` custom events and handle payloads
+- `storageHasMessages()` — utility used to detect pre-existing messages in storage
 
 ### Custom events
 
@@ -252,14 +251,13 @@ document.dispatchEvent(new CustomEvent('flash-unified:messages', {
 ### Turbo integration helpers (from `flash_unified/turbo_helpers`)
 
 - `installTurboRenderListeners(debug = false)` — render on Turbo lifecycle events (Drive, Frame, Stream)
-- `setupTurboStreamEvents(debugLog)` — advanced hook to dispatch `turbo:after-stream-render` and render after streams
-- `setupFlashUnifiedForTurbo(debug = false)` — convenience: install Turbo listeners and a custom payload handler
+- `installTurboIntegration(debug = false)` — convenience: install Turbo listeners and a custom payload handler
 
 ### Network/HTTP error helpers (from `flash_unified/network_helpers`)
 
 - `notifyNetworkError()` — add a generic network error (looks up text in `#general-error-messages`) and render
 - `notifyHttpError(status)` — add an HTTP-status-specific message and render
-- `handleFlashErrorStatus(status)` — lower-level function used by the helpers; respects existing storage/visible messages
+- `resolveAndAppendErrorMessage(status)` — lower-level function used by the helpers; respects existing storage/visible messages
 
 ### Auto entry (from `flash_unified/auto`)
 

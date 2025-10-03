@@ -62,11 +62,11 @@ FlashUnified はクライアント（JavaScript）とサーバー（ビュー・
 
 ジェネレータを実行すると、以下のファイルがホストアプリにコピーされます：
 
-- JavaScript（ES Modules）:
-  - `app/javascript/flash_unified/flash_unified.js`（コア機能）
-  - `app/javascript/flash_unified/auto.js`（自動初期化エントリ）
-  - `app/javascript/flash_unified/turbo_helpers.js`（Turbo 連携ヘルパー）
-  - `app/javascript/flash_unified/network_helpers.js`（ネットワーク/HTTP エラーヘルパー）
+- JavaScript（ES Modules）`app/javascript/flash_unified/` に以下をコピー
+  - `flash_unified.js`（コア機能）
+  - `auto.js`（自動初期化エントリ）
+  - `turbo_helpers.js`（Turbo 連携ヘルパー）
+  - `network_helpers.js`（ネットワーク/HTTP エラーヘルパー）
 - ビュー（パーシャル）: `app/views/flash_unified/` に以下をコピー
   - `_templates.html.erb`（クライアントが使う `<template>` 要素）
   - `_storage.html.erb`（メッセージ埋め込みのための非表示ストレージ要素）
@@ -160,11 +160,8 @@ notifyHttpError(413); // HTTP ステータス別のメッセージをセット�
 <link rel="modulepreload" href="<%= asset_path('flash_unified/auto.js') %>">
 <script type="module">
   import "<%= asset_path('flash_unified/auto.js') %>";
-  <!-- 必要に応じて <html> の data-* 属性で挙動を切り替え -->
 </script>
 ```
-
-
 
 ## セットアップ（サーバーサイド）
 
@@ -229,10 +226,10 @@ JavaScript は最小コアとオプションのヘルパー群に分割されて
 - `renderFlashMessages()` — 非表示ストレージを走査してコンテナに描画し、ストレージを削除
 - `appendMessageToStorage(message, type = 'alert')` — グローバルストレージ（`#flash-storage`）に追記
 - `clearFlashMessages(message?)` — 描画済みメッセージを全削除、または完全一致テキストのみ削除
-- `handleFlashPayload(payload)` — `{ type, message }[]` または `{ messages: [...] }` を受け取り、追記して描画
-- `enableMutationObserver(options = {})` — ストレージ/テンプレートの挿入を監視して描画（任意）
-- `setupCustomEventListener(debug = false)` — `flash-unified:messages` を購読してペイロード処理
-- `anyFlashStorageHasMessage()` — ストレージ内に既存メッセージがあるか判定するユーティリティ
+- `processMessagePayload(payload)` — `{ type, message }[]` または `{ messages: [...] }` を受け取り、追記して描画
+- `startMutationObserver(options = {})` — ストレージ/テンプレートの挿入を監視して描画（任意）
+- `installCustomEventListener(debug = false)` — `flash-unified:messages` を購読してペイロード処理
+- `storageHasMessages()` — ストレージ内に既存メッセージがあるか判定するユーティリティ
 
 ### カスタムイベント
 
@@ -258,14 +255,13 @@ document.dispatchEvent(new CustomEvent('flash-unified:messages', {
 ### Turbo 連携ヘルパー（`flash_unified/turbo_helpers`）
 
 - `installTurboRenderListeners(debug = false)` — Turbo のライフサイクル（Drive/Frame/Stream）に合わせて描画
-- `setupTurboStreamEvents(debugLog)` — `turbo:after-stream-render` を発火してストリーム後に描画
-- `setupFlashUnifiedForTurbo(debug = false)` — Turbo リスナーとカスタムイベント処理をまとめて設定
+- `installTurboIntegration(debug = false)` — Turbo リスナーとカスタムイベント処理をまとめて設定
 
 ### ネットワーク/HTTP エラー用ヘルパー（`flash_unified/network_helpers`）
 
 - `notifyNetworkError()` — `#general-error-messages` から汎用ネットワークエラー文言を引いて描画
 - `notifyHttpError(status)` — HTTP ステータス別の文言を引いて描画
-- `handleFlashErrorStatus(status)` — 下位 API。ストレージ/可視コンテナに既存メッセージがある場合は重複を避けます
+- `resolveAndAppendErrorMessage(status)` — 下位 API。ストレージ/可視コンテナに既存メッセージがある場合は重複を避けます
 
 ### 自動初期化エントリ（`flash_unified/auto`）
 

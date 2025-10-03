@@ -9,8 +9,8 @@
   - renderFlashMessages(): render all messages from storage into containers
   - appendMessageToStorage(message, type): add a message to hidden storage
   - clearFlashMessages(message?): clear displayed messages
-  - handleFlashPayload(payload): handle message arrays from custom events
-  - enableMutationObserver(options): watch for dynamically inserted storage/templates
+  - processMessagePayload(payload): handle message arrays from custom events
+  - startMutationObserver(options): watch for dynamically inserted storage/templates
 
   Required DOM (no Rails helpers needed)
   1) Display container (required)
@@ -133,7 +133,7 @@ function appendMessageToStorage(message, type = 'alert') {
   Setup custom event listener for programmatic message dispatch.
   Listen for "flash-unified:messages" events from server or other JS.
 */
-function setupCustomEventListener(debugFlag = false) {
+function installCustomEventListener(debugFlag = false) {
   // Prevent duplicate listener installation
   const root = document.documentElement;
   if (root.hasAttribute('data-flash-unified-custom-listener')) return;
@@ -146,7 +146,7 @@ function setupCustomEventListener(debugFlag = false) {
   document.addEventListener('flash-unified:messages', function(event) {
     debugLog('flash-unified:messages');
     try {
-      handleFlashPayload(event.detail);
+      processMessagePayload(event.detail);
     } catch (e) {
       console.error('[FlashUnified] Failed to handle custom payload', e);
     }
@@ -221,7 +221,7 @@ function createFlashMessageNode(type, message) {
   ---
   Return true if any [data-flash-storage] contains at least one <li> item.
 */
-function anyFlashStorageHasMessage() {
+function storageHasMessages() {
   const storages = document.querySelectorAll('[data-flash-storage]');
   for (const storage of storages) {
     const ul = storage.querySelector('ul');
@@ -237,7 +237,7 @@ function anyFlashStorageHasMessage() {
   Handle a payload of messages and render them.
   Accepts either an array of { type, message } or an object { messages: [...] }.
 */
-function handleFlashPayload(payload) {
+function processMessagePayload(payload) {
   if (!payload) return;
   const list = Array.isArray(payload)
     ? payload
@@ -257,7 +257,7 @@ function handleFlashPayload(payload) {
   flash storage or templates and triggers rendering. Useful when you cannot
   or do not want to dispatch a custom event from server responses.
 */
-function enableMutationObserver(options = {}) {
+function startMutationObserver(options = {}) {
   const root = document.documentElement;
   if (root.hasAttribute('data-flash-unified-observer-enabled')) return;
   root.setAttribute('data-flash-unified-observer-enabled', 'true');
@@ -296,8 +296,8 @@ export {
   renderFlashMessages,
   appendMessageToStorage,
   clearFlashMessages,
-  handleFlashPayload,
-  enableMutationObserver,
-  setupCustomEventListener,
-  anyFlashStorageHasMessage
+  processMessagePayload,
+  startMutationObserver,
+  installCustomEventListener,
+  storageHasMessages
 };
