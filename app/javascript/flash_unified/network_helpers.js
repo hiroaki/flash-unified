@@ -13,10 +13,14 @@
     </ul>
 
   Usage:
-    import { installNetworkErrorListeners } from "flash_unified/network_helpers";
+    // Framework-agnostic helpers (call from your own handlers)
+    import { notifyNetworkError, notifyHttpError } from "flash_unified/network_helpers";
+    notifyNetworkError();   // Add generic network error and render
+    notifyHttpError(413);   // Add HTTP-specific message and render
 
-    // Install automatic network error handling
-    installNetworkErrorListeners(true); // debug=true
+    // Turbo-specific automatic listeners (optional):
+    // import { installNetworkErrorListeners } from "flash_unified/turbo_helpers";
+    // installNetworkErrorListeners(true); // debug=true
 */
 
 import { renderFlashMessages, appendMessageToStorage, anyFlashStorageHasMessage } from './flash_unified.js';
