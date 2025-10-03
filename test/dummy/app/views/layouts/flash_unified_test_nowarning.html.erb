@@ -8,8 +8,9 @@
     <%= stylesheet_link_tag "application" %>
     <%= javascript_include_tag "turbo", type: "module" %>
     <script type="module">
-      import { initializeFlashMessageSystem, renderFlashMessages } from "<%= asset_path('flash_unified/flash_unified.js') %>";
-      const init = () => { initializeFlashMessageSystem(); Promise.resolve().then(() => renderFlashMessages()); };
+      import "<%= asset_path('flash_unified/auto.js') %>";
+      import { renderFlashMessages } from "<%= asset_path('flash_unified/flash_unified.js') %>";
+      const init = () => { Promise.resolve().then(() => renderFlashMessages()); };
       if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", init);
       } else {

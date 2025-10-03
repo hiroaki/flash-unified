@@ -46,26 +46,25 @@ module FlashUnified
           - Importmap: add to `config/importmap.rb`:
 
               pin "flash_unified", to: "flash_unified/flash_unified.js"
+              pin "flash_unified/auto", to: "flash_unified/auto.js"
+              pin "flash_unified/turbo_helpers", to: "flash_unified/turbo_helpers.js"
+              pin "flash_unified/network_helpers", to: "flash_unified/network_helpers.js"
 
-            then initialize it in your JavaScript entrypoint (idempotent):
+            Quick start (auto init):
 
-              import { initializeFlashMessageSystem } from "flash_unified";
-              if (document.readyState === "loading") {
-                document.addEventListener("DOMContentLoaded", initializeFlashMessageSystem);
-              } else {
-                initializeFlashMessageSystem();
-              }
+              import "flash_unified/auto"; // Sets up Turbo listeners and renders on load
+
+            Manual control:
+
+              import { renderFlashMessages, appendMessageToStorage } from "flash_unified";
+              import { installTurboRenderListeners } from "flash_unified/turbo_helpers";
+              installTurboRenderListeners();
 
           - Asset pipeline (Propshaft / Sprockets): the engine adds its `app/javascript` to the asset paths; import via an inline module script in your layout's <head>:
 
-              <link rel="modulepreload" href="<%= asset_path('flash_unified/flash_unified.js') %>">
+              <link rel="modulepreload" href="<%= asset_path('flash_unified/auto.js') %>">
               <script type="module">
-                import { initializeFlashMessageSystem } from "<%= asset_path('flash_unified/flash_unified.js') %>";
-                if (document.readyState === 'loading') {
-                  document.addEventListener('DOMContentLoaded', initializeFlashMessageSystem);
-                } else {
-                  initializeFlashMessageSystem();
-                }
+                import "<%= asset_path('flash_unified/auto.js') %>";
               </script>
 
           How to place partials in your layout
