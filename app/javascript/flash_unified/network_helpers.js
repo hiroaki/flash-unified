@@ -17,10 +17,6 @@
     import { notifyNetworkError, notifyHttpError } from "flash_unified/network_helpers";
     notifyNetworkError();   // Add generic network error and render
     notifyHttpError(413);   // Add HTTP-specific message and render
-
-    // Turbo-specific automatic listeners (optional):
-    // import { installNetworkErrorListeners } from "flash_unified/turbo_helpers";
-    // installNetworkErrorListeners(true); // debug=true
 */
 
 import { renderFlashMessages, appendMessageToStorage, storageHasMessages } from './flash_unified.js';

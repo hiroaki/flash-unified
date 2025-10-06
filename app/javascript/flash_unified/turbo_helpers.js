@@ -10,14 +10,11 @@
     import { installTurboRenderListeners } from "flash_unified/turbo_helpers";
 
     // Install automatic Turbo event listeners
-    installTurboRenderListeners(true); // debug=true
+    installTurboRenderListeners();
 
-    // Manual initial render
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', renderFlashMessages);
-    } else {
-      renderFlashMessages();
-    }
+    // For the initial render we recommend using the core helper:
+    // import { installInitialRenderListener } from "flash_unified";
+    // installInitialRenderListener();
 */
 
 import { renderFlashMessages, installCustomEventListener } from './flash_unified.js';
@@ -29,44 +26,33 @@ import { resolveAndAppendErrorMessage } from './network_helpers.js';
   Install Turbo event listeners for automatic flash message rendering.
   Renders messages on page navigation and frame updates.
 */
-function installTurboRenderListeners(debugFlag = false) {
+function installTurboRenderListeners() {
   const root = document.documentElement;
   if (root.hasAttribute('data-flash-unified-turbo-listeners')) {
     return; // Already installed
   }
   root.setAttribute('data-flash-unified-turbo-listeners', 'true');
 
-  const debugLog = debugFlag ? function(message) {
-    console.debug(`[FlashUnified:Turbo] ${message}`);
-  } : function() {};
-
   // Turbo page load events
   document.addEventListener('turbo:load', function() {
-    debugLog('turbo:load');
     renderFlashMessages();
   });
 
   document.addEventListener('turbo:frame-load', function() {
-    debugLog('turbo:frame-load');
     renderFlashMessages();
   });
 
   document.addEventListener('turbo:render', function() {
-    debugLog('turbo:render');
     renderFlashMessages();
   });
 
   // Turbo Stream events
-  installTurboStreamEvents(debugLog);
+  installTurboStreamEvents();
 
   // Initial render if not already done
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
-      debugLog('DOMContentLoaded');
-      renderFlashMessages();
-    }, { once: true });
+    document.addEventListener('DOMContentLoaded', function() { renderFlashMessages(); }, { once: true });
   } else {
-    debugLog('DOMContentLoaded (immediate)');
     renderFlashMessages();
   }
 }
@@ -78,13 +64,12 @@ function installTurboRenderListeners(debugFlag = false) {
   Hooks into turbo:before-stream-render to dispatch event after rendering is done.
 */
 // Internal: used by installTurboRenderListeners
-function installTurboStreamEvents(debugLog) {
+function installTurboStreamEvents() {
   // Create custom event for after stream render
   const afterRenderEvent = new Event("turbo:after-stream-render");
 
   // Hook into turbo:before-stream-render to add our custom event
   document.addEventListener("turbo:before-stream-render", (event) => {
-    debugLog('turbo:before-stream-render');
     const originalRender = event.detail.render;
     event.detail.render = async function (streamElement) {
       await originalRender(streamElement);
@@ -94,7 +79,6 @@ function installTurboStreamEvents(debugLog) {
 
   // Listen for our custom after-stream-render event
   document.addEventListener("turbo:after-stream-render", function() {
-    debugLog('turbo:after-stream-render');
     renderFlashMessages();
   });
 }
@@ -103,14 +87,14 @@ function installTurboStreamEvents(debugLog) {
   ---
   Sets up Turbo listeners + custom event listeners in one call.
 */
-function installTurboIntegration(debugFlag = false) {
+function installTurboIntegration() {
   const root = document.documentElement;
   if (root.hasAttribute('data-flash-unified-initialized')) return; // idempotent
   root.setAttribute('data-flash-unified-initialized', 'true');
 
   // Delegate to existing installers to avoid duplicating logic.
-  installTurboRenderListeners(debugFlag);
-  installCustomEventListener(debugFlag);
+  installTurboRenderListeners();
+  installCustomEventListener();
 }
 
 export {
@@ -124,25 +108,14 @@ export {
   Install network error event listeners for automatic error handling.
   Handles Turbo form submission errors and network issues.
 */
-function installNetworkErrorListeners(debugFlag = false) {
+function installNetworkErrorListeners() {
   const root = document.documentElement;
   if (root.hasAttribute('data-flash-unified-network-listeners')) {
     return; // Already installed
   }
   root.setAttribute('data-flash-unified-network-listeners', 'true');
 
-  const debugLog = debugFlag ? function(message) {
-    console.debug(`[FlashUnified:NetworkError] ${message}`);
-  } : function() {};
-
-  // If Turbo is not present, these listeners will not fire. Provide a hint in debug mode.
-  const turboPresent = typeof window !== 'undefined' && window.Turbo;
-  if (!turboPresent) {
-    debugLog('Turbo not detected. installNetworkErrorListeners will be inert. Use notifyNetworkError()/notifyHttpError() from your own handlers.');
-  }
-
   document.addEventListener('turbo:submit-end', function(event) {
-    debugLog('turbo:submit-end');
     const res = event.detail.fetchResponse;
     if (res === undefined) {
       resolveAndAppendErrorMessage('network');
@@ -154,7 +127,6 @@ function installNetworkErrorListeners(debugFlag = false) {
   });
 
   document.addEventListener('turbo:fetch-request-error', function(_event) {
-    debugLog('turbo:fetch-request-error');
     resolveAndAppendErrorMessage('network');
     renderFlashMessages();
   });

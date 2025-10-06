@@ -10,7 +10,7 @@
   - appendMessageToStorage(message, type): add a message to hidden storage
   - clearFlashMessages(message?): clear displayed messages
   - processMessagePayload(payload): handle message arrays from custom events
-  - startMutationObserver(options): watch for dynamically inserted storage/templates
+  - startMutationObserver(): watch for dynamically inserted storage/templates
 
   Required DOM (no Rails helpers needed)
   1) Display container (required)
@@ -69,7 +69,7 @@ function renderFlashMessages() {
   const containers = document.querySelectorAll('[data-flash-message-container]');
 
   // Aggregated messages list
-  let messages = [];
+  const messages = [];
   storages.forEach(storage => {
     const ul = storage.querySelector('ul');
     if (ul && ul.children.length > 0) {
@@ -133,18 +133,12 @@ function appendMessageToStorage(message, type = 'alert') {
   Setup custom event listener for programmatic message dispatch.
   Listen for "flash-unified:messages" events from server or other JS.
 */
-function installCustomEventListener(debugFlag = false) {
-  // Prevent duplicate listener installation
+function installCustomEventListener() {
   const root = document.documentElement;
-  if (root.hasAttribute('data-flash-unified-custom-listener')) return;
+  if (root.hasAttribute('data-flash-unified-custom-listener')) return; // idempotent
   root.setAttribute('data-flash-unified-custom-listener', 'true');
 
-  const debugLog = debugFlag ? function(message) {
-    console.debug(`[FlashUnified:CustomEvent] ${message}`);
-  } : function() {};
-
   document.addEventListener('flash-unified:messages', function(event) {
-    debugLog('flash-unified:messages');
     try {
       processMessagePayload(event.detail);
     } catch (e) {
@@ -257,13 +251,10 @@ function processMessagePayload(payload) {
   flash storage or templates and triggers rendering. Useful when you cannot
   or do not want to dispatch a custom event from server responses.
 */
-function startMutationObserver(options = {}) {
+function startMutationObserver() {
   const root = document.documentElement;
   if (root.hasAttribute('data-flash-unified-observer-enabled')) return;
   root.setAttribute('data-flash-unified-observer-enabled', 'true');
-
-  const debug = !!options.debug;
-  const log = debug ? (msg) => console.debug(msg) : () => {};
 
   const observer = new MutationObserver((mutations) => {
     let shouldRender = false;
@@ -281,7 +272,6 @@ function startMutationObserver(options = {}) {
       }
     }
     if (shouldRender) {
-      log('MutationObserver: renderFlashMessages');
       renderFlashMessages();
     }
   });

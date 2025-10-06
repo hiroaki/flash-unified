@@ -55,7 +55,6 @@ module FlashUnified
               import "flash_unified/auto"; // Sets up Turbo listeners and renders on load
               // Configure via <html data-flash-unified-*>:
               //   data-flash-unified-auto-init="false" (opt-out)
-              //   data-flash-unified-debug="true" (debug logs)
               //   data-flash-unified-enable-network-errors="true" (install Turbo network error listeners)
 
             Manual control:
