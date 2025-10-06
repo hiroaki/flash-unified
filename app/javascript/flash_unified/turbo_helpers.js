@@ -20,7 +20,7 @@
     }
 */
 
-import { renderFlashMessages, processMessagePayload } from './flash_unified.js';
+import { renderFlashMessages, installCustomEventListener } from './flash_unified.js';
 import { resolveAndAppendErrorMessage } from './network_helpers.js';
 
 /* Turbo関連のイベントリスナーを設定します。
@@ -105,27 +105,12 @@ function installTurboStreamEvents(debugLog) {
 */
 function installTurboIntegration(debugFlag = false) {
   const root = document.documentElement;
-  if (root.hasAttribute('data-flash-unified-initialized')) {
-    return; // idempotent init
-  }
+  if (root.hasAttribute('data-flash-unified-initialized')) return; // idempotent
   root.setAttribute('data-flash-unified-initialized', 'true');
 
-  const debugLog = debugFlag ? function(message) {
-    console.debug(message);
-  } : function() {};
-
-  // Install Turbo listeners
+  // Delegate to existing installers to avoid duplicating logic.
   installTurboRenderListeners(debugFlag);
-
-  // Setup custom event listener (uses core processMessagePayload)
-  document.addEventListener('flash-unified:messages', function(event) {
-    debugLog('flash-unified:messages');
-    try {
-      processMessagePayload(event.detail);
-    } catch (e) {
-      console.error('[FlashUnified] Failed to handle custom payload', e);
-    }
-  });
+  installCustomEventListener(debugFlag);
 }
 
 export {
