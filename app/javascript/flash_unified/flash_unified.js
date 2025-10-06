@@ -94,7 +94,7 @@ function renderFlashMessages() {
   Append a message item into the hidden storage.
   Call renderFlashMessages() to display it.
 */
-function appendMessageToStorage(message, type = 'alert') {
+function appendMessageToStorage(message, type = 'notice') {
   const storageContainer = document.getElementById("flash-storage");
   if (!storageContainer) {
     console.error('[FlashUnified] #flash-storage not found. Define <div id="flash-storage" style="display:none"></div> in layout.');
@@ -239,7 +239,7 @@ function processMessagePayload(payload) {
   if (list.length === 0) return;
   list.forEach(({ type, message }) => {
     if (!message) return;
-    appendMessageToStorage(String(message), type || 'notice');
+    appendMessageToStorage(String(message), type);
   });
   renderFlashMessages();
 }
