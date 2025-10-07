@@ -48,13 +48,6 @@ function installTurboRenderListeners() {
 
   // Turbo Stream events
   installTurboStreamEvents();
-
-  // Initial render if not already done
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() { renderFlashMessages(); }, { once: true });
-  } else {
-    renderFlashMessages();
-  }
 }
 
 /* Turbo Stream更新後のカスタムイベントを設定します。

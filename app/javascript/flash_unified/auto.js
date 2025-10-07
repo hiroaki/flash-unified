@@ -26,6 +26,7 @@
 */
 
 import { installTurboIntegration, installNetworkErrorListeners } from './turbo_helpers.js';
+import { installInitialRenderListener } from './flash_unified.js';
 
 if (typeof document !== 'undefined') {
   const root = document.documentElement;
@@ -36,15 +37,14 @@ if (typeof document !== 'undefined') {
     const enableNetworkErrors = root.getAttribute('data-flash-unified-enable-network-errors') === 'true';
 
     const init = async () => {
-  // Set up Turbo integration and custom event handling
-  installTurboIntegration();
-
+      // Set up Turbo integration and custom event handling
+      installTurboIntegration();
+      installInitialRenderListener();
       // Optionally install network error helpers
       if (enableNetworkErrors) {
         installNetworkErrorListeners();
       }
     };
-
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', init, { once: true });
     } else {

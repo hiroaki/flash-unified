@@ -56,6 +56,19 @@
     });
 */
 
+/* 初回描画リスナーをセットします。
+   DOMContentLoaded 時に renderFlashMessages() を一度だけ呼びます。
+   ---
+   Install a listener to render flash messages on DOMContentLoaded (once).
+*/
+function installInitialRenderListener() {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() { renderFlashMessages(); }, { once: true });
+  } else {
+    renderFlashMessages();
+  }
+}
+
 /* ストレージにあるメッセージを表示させます。
   すべての [data-flash-storage] 内のリスト項目を集約し、各項目ごとにテンプレートを用いて
   フラッシュメッセージ要素を生成し、[data-flash-message-container] に追加します。
@@ -289,5 +302,6 @@ export {
   processMessagePayload,
   startMutationObserver,
   installCustomEventListener,
+  installInitialRenderListener,
   storageHasMessages
 };
