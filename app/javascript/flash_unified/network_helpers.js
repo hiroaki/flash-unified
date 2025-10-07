@@ -32,14 +32,20 @@ function resolveAndAppendErrorMessage(status) {
   // If any flash storage already contains messages, do not override it
   if (storageHasMessages()) return;
 
+  // API: resolveAndAppendErrorMessage expects a numeric HTTP status code.
+  // Use 0 to indicate a network-level failure (CORS, network down, file://, etc.).
+  // Non-error codes (< 400) are ignored.
+  const num = Number(status);
+  if (isNaN(num)) return;        // invalid (non-numeric)
+  if (num < 0) return;          // negative numbers not expected
+  if (num > 0 && num < 400) return; // non-error HTTP status codes
+
   // Determine lookup key
   let key;
-  if (status === 'network') {
+  if (num === 0) {
     key = 'network';
-  } else if (!status || status < 400) {
-    return;
   } else {
-    key = String(status);
+    key = String(num);
   }
 
   // Avoid duplicates when container has children
@@ -61,7 +67,7 @@ function resolveAndAppendErrorMessage(status) {
 }
 
 function notifyNetworkError() {
-  resolveAndAppendErrorMessage('network');
+  resolveAndAppendErrorMessage(0);
   renderFlashMessages();
 }
 

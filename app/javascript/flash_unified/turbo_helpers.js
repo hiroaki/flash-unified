@@ -110,17 +110,24 @@ function installNetworkErrorListeners() {
 
   document.addEventListener('turbo:submit-end', function(event) {
     const res = event.detail.fetchResponse;
+    // Determine a numeric status code to pass to the resolver.
+    // Use 0 to represent a network-level failure where no response was received.
+    let statusCode;
     if (res === undefined) {
-      resolveAndAppendErrorMessage('network');
+      statusCode = 0;
       console.warn('[FlashUnified] No response received from server. Possible network or proxy error.');
     } else {
-      resolveAndAppendErrorMessage(res.statusCode);
+      statusCode = res.statusCode;
     }
+
+    resolveAndAppendErrorMessage(statusCode);
     renderFlashMessages();
   });
 
   document.addEventListener('turbo:fetch-request-error', function(_event) {
-    resolveAndAppendErrorMessage('network');
+    // Treat fetch-request-error as a network-level failure (status 0)
+    const statusCode = 0;
+    resolveAndAppendErrorMessage(statusCode);
     renderFlashMessages();
   });
 }
