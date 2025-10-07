@@ -1,0 +1,11 @@
+<h1>Events With Message</h1>
+<p>Page starts with a server-provided alert message.</p>
+<%= flash_storage %>
+<button id="simulate-network">Simulate network error</button>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('simulate-network').addEventListener('click', () => {
+      document.dispatchEvent(new CustomEvent('turbo:fetch-request-error', { detail: {} }));
+    });
+  });
+</script>

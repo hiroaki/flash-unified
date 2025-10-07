@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html data-flash-unified-enable-network-errors="true">
   <head>
     <title>Dummy</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -11,12 +11,8 @@
     <%= javascript_include_tag "turbo", type: "module" %>
 
     <script type="module">
-      import { initializeFlashMessageSystem } from "<%= asset_path('flash_unified/flash_unified.js') %>";
-      if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", initializeFlashMessageSystem);
-      } else {
-        initializeFlashMessageSystem();
-      }
+      // Use convenience auto entry to install Turbo listeners and render on load
+      import "<%= asset_path('flash_unified/auto.js') %>";
     </script>
   </head>
 

@@ -1,22 +1,17 @@
 <!DOCTYPE html>
-<html data-flash-unified-enable-network-errors="true">
+<html data-flash-unified-auto-init="false">
   <head>
-    <title>FlashUnified Test</title>
+    <title>FlashUnified Auto Off</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
     <%= stylesheet_link_tag "application" %>
     <%= javascript_include_tag "turbo", type: "module" %>
     <script type="module">
-      // Use auto entry + an extra render after init for test expectations
-      import "<%= asset_path('flash_unified/auto.js') %>";
+      // Note: no auto.js import here to prove opt-out works
       import { renderFlashMessages } from "<%= asset_path('flash_unified/flash_unified.js') %>";
-      const init = () => { Promise.resolve().then(() => renderFlashMessages()); };
-      if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", init);
-      } else {
-        init();
-      }
+      // Expose manual render hook for tests
+      window.__manualRenderFlash__ = () => renderFlashMessages();
     </script>
   </head>
   <body>

@@ -1,0 +1,13 @@
+<h1>Clear</h1>
+<%= flash_storage %>
+<button id="clear-all">Clear All</button>
+<script type="module">
+  import { clearFlashMessages, renderFlashMessages } from "<%= asset_path('flash_unified/flash_unified.js') %>";
+  document.addEventListener('DOMContentLoaded', function() {
+    // Render initial messages explicitly because layout already rendered once
+    renderFlashMessages();
+    document.getElementById('clear-all').addEventListener('click', function() {
+      clearFlashMessages();
+    });
+  });
+</script>

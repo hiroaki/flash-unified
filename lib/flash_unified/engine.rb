@@ -21,7 +21,13 @@ module FlashUnified
       if app.config.respond_to?(:assets)
         # Sprockets / Propshaft style
         app.config.assets.paths << js_path
-        app.config.assets.precompile += %w[ flash_unified/flash_unified.js ]
+        # Expose ES module entry points for production precompile
+        app.config.assets.precompile += %w[
+          flash_unified/flash_unified.js
+          flash_unified/auto.js
+          flash_unified/turbo_helpers.js
+          flash_unified/network_helpers.js
+        ]
       else
         # Fallback: still add to assets paths if available
         app.config.assets.paths << js_path if app.config.respond_to?(:assets)
