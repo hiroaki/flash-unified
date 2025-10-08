@@ -6,13 +6,28 @@
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
 
+    <link rel="modulepreload" href="<%= asset_path('flash_unified/flash_unified.js') %>">
+    <link rel="modulepreload" href="<%= asset_path('flash_unified/network_helpers.js') %>">
+    <link rel="modulepreload" href="<%= asset_path('flash_unified/turbo_helpers.js') %>">
+    <link rel="modulepreload" href="<%= asset_path('flash_unified/auto.js') %>">
+    <script type="importmap">
+      {
+        "imports": {
+          "flash_unified": "<%= asset_path('flash_unified/flash_unified.js') %>",
+          "flash_unified/auto": "<%= asset_path('flash_unified/auto.js') %>",
+          "flash_unified/turbo_helpers": "<%= asset_path('flash_unified/turbo_helpers.js') %>",
+          "flash_unified/network_helpers": "<%= asset_path('flash_unified/network_helpers.js') %>"
+        }
+      }
+    </script>
+
     <%= stylesheet_link_tag "application" %>
 
     <%= javascript_include_tag "turbo", type: "module" %>
 
     <script type="module">
       // Use convenience auto entry to install Turbo listeners and render on load
-      import "<%= asset_path('flash_unified/auto.js') %>";
+      import "flash_unified/auto";
     </script>
   </head>
 
