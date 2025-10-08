@@ -6,6 +6,9 @@ require "flash_unified/version"
 # attempt to load the engine.
 require "flash_unified/engine" if defined?(Rails)
 
+# Load Railtie to register generators when running `rails generate`.
+require "flash_unified/railtie" if defined?(Rails)
+
 # Installer is a small, framework-agnostic helper used by the generator
 # and needs to be available when running generator code outside of Rails.
 require "flash_unified/installer"
