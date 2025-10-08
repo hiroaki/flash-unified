@@ -110,28 +110,30 @@ bin/rails generate flash_unified:install
 
 ### 2. Add JavaScript
 
-Importmap:
+**Importmap:**
 
-If you want the library to set up rendering timing automatically, use `auto.js`. `auto.js` will register Turbo integration events, custom event listeners, and perform initial render handling automatically.
+`config/importmap.rb` should pin the JavaScript modules you use. The installer generator and sandbox templates pin all shipped modules, but if you manage pins manually, include at least the following:
 
 ```ruby
 pin "flash_unified/auto", to: "flash_unified/auto.js"
-```
-
-`auto.js` registers several events related to page re-rendering. If you want to control those events yourself, use the core `flash_unified.js` and manually set up handlers. For example, call `installInitialRenderListener()` to handle the initial render, call `installTurboRenderListeners()` (from `flash_unified/turbo_helpers`) to register Turbo lifecycle hooks, and call `installCustomEventListener()` to subscribe to `flash-unified:messages`. `turbo_helpers.js` and `network_helpers.js` are optional—pin only the ones you will use:
-
-```ruby
 pin "flash_unified", to: "flash_unified/flash_unified.js"
 pin "flash_unified/turbo_helpers", to: "flash_unified/turbo_helpers.js"
 pin "flash_unified/network_helpers", to: "flash_unified/network_helpers.js"
 ```
 
-Asset pipeline (Propshaft / Sprockets):
+If you want the library to set up rendering timing automatically, use `auto.js`. `auto.js` will register Turbo integration events, custom event listeners, and perform initial render handling automatically.
+
+If you prefer to control those events yourself, import the core `flash_unified` module and call the provided helpers (for example, `installInitialRenderListener()` for initial render, `installTurboRenderListeners()` from `flash_unified/turbo_helpers` for Turbo lifecycle hooks, and `installCustomEventListener()` to subscribe to `flash-unified:messages`). `turbo_helpers.js` and `network_helpers.js` are optional—pin only the ones you will use.
+
+**Asset pipeline (Propshaft / Sprockets):**
 
 Since the JavaScript is an ES module, instead of pinning, import it from your layout as a module:
 
 ```erb
 <script type="module">
+  import "<%= asset_path('flash_unified/flash_unified.js') %>";
+  import "<%= asset_path('flash_unified/network_helpers.js') %>";
+  import "<%= asset_path('flash_unified/turbo_helpers.js') %>";
   import "<%= asset_path('flash_unified/auto.js') %>";
 </script>
 ```

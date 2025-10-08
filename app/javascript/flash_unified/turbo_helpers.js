@@ -17,8 +17,8 @@
     // installInitialRenderListener();
 */
 
-import { renderFlashMessages, installCustomEventListener } from './flash_unified.js';
-import { resolveAndAppendErrorMessage } from './network_helpers.js';
+import { renderFlashMessages, installCustomEventListener } from 'flash_unified';
+import { resolveAndAppendErrorMessage } from 'flash_unified/network_helpers';
 
 /* Turbo関連のイベントリスナーを設定します。
   ページ遷移やフレーム更新時に自動的にフラッシュメッセージを描画します。

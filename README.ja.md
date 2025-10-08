@@ -109,25 +109,26 @@ bin/rails generate flash_unified:install
 
 **Importmap の場合**
 
-描画のタイミングを自動で設定する場合は `auto.js` を使います。`auto.js` は Turbo 連携のイベントの登録およびカスタムイベントの登録、そしてページの初回描画時の処理を自動で行います：
-
+`config/importmap.rb` に、使用する JavaScript を pin してください：
 ```ruby
+pin "flash_unified", to: "flash_unified/flash_unified.js"
+pin "flash_unified/network_helpers", to: "flash_unified/network_helpers.js"
+pin "flash_unified/turbo_helpers", to: "flash_unified/turbo_helpers.js"
 pin "flash_unified/auto", to: "flash_unified/auto.js"
 ```
 
-`auto.js` はページの再描画に関わるイベントをいくつか追加しますが、そうしたイベントを自身で制御（実装）することがある場合は、代わりにコア・ライブラリである `flash_unified.js` を使って描画処理を独自に実装してください。またヘルパー `turbo_helpers.js` と `network_helpers.js` はオプションですので、利用するものだけ pin してください：
+描画のタイミングを自動で設定する場合は `auto.js` を使います。`auto.js` は Turbo 連携のイベントの登録およびカスタムイベントの登録、そしてページの初回描画時の処理を自動で行います。
 
-```ruby
-pin "flash_unified", to: "flash_unified/flash_unified.js"
-pin "flash_unified/turbo_helpers", to: "flash_unified/turbo_helpers.js"
-pin "flash_unified/network_helpers", to: "flash_unified/network_helpers.js"
-```
+そうしたイベントを自身で制御（実装）することがある場合は、コア・ライブラリである `flash_unified.js` を使って描画処理を独自に実装してください。その場合 `auto.js` は不要です。またヘルパー `turbo_helpers.js` と `network_helpers.js` はオプションですので、利用するものだけ pin してください。
 
 **アセットパイプライン（Propshaft / Sprockets） の場合**
 
 この gem が提供する JavaScript は ES モジュールですので、上述 `pin` の代わりに、レイアウトなど適切な箇所に次のように設置します：
 ```erb
 <script type="module">
+  import "<%= asset_path('flash_unified/flash_unified.js') %>";
+  import "<%= asset_path('flash_unified/network_helpers.js') %>";
+  import "<%= asset_path('flash_unified/turbo_helpers.js') %>";
   import "<%= asset_path('flash_unified/auto.js') %>";
 </script>
 ```

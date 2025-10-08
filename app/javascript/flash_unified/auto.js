@@ -25,8 +25,8 @@
   - Set <html data-flash-unified-enable-network-errors="true"> to enable network error handling
 */
 
-import { installTurboIntegration, installNetworkErrorListeners } from './turbo_helpers.js';
-import { installInitialRenderListener } from './flash_unified.js';
+import { installTurboIntegration, installNetworkErrorListeners } from 'flash_unified/turbo_helpers';
+import { installInitialRenderListener } from 'flash_unified';
 
 if (typeof document !== 'undefined') {
   const root = document.documentElement;
