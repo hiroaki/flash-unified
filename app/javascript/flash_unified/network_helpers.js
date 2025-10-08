@@ -19,7 +19,7 @@
     notifyHttpError(413);   // Add HTTP-specific message and render
 */
 
-import { renderFlashMessages, appendMessageToStorage, storageHasMessages } from './flash_unified.js';
+import { renderFlashMessages, appendMessageToStorage, storageHasMessages } from 'flash_unified';
 
 /* エラーステータスに応じた汎用メッセージをストレージへ追加します。
   既にストレージにメッセージが存在する場合は何もしません。

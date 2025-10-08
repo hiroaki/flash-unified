@@ -52,7 +52,9 @@ module FlashUnified
 
             Quick start (auto init):
 
-              import "flash_unified/auto"; // Sets up Turbo listeners and renders on load
+              Importing `flash_unified/auto` sets up Turbo listeners and triggers an initial render.
+
+              import "flash_unified/auto";
               // Configure via <html data-flash-unified-*>:
               //   data-flash-unified-auto-init="false" (opt-out)
               //   data-flash-unified-enable-network-errors="true" (install Turbo network error listeners)
@@ -69,12 +71,27 @@ module FlashUnified
               // notifyNetworkError();
               // notifyHttpError(413);
 
-          - Asset pipeline (Propshaft / Sprockets): the engine adds its `app/javascript` to the asset paths; import via an inline module script in your layout's <head>:
+          - Asset pipeline (Propshaft / Sprockets): the engine adds its `app/javascript` to the asset paths; add modulepreload links and an inline importmap in your layout's `<head>` and import the bare specifier.
 
+              <link rel="modulepreload" href="<%= asset_path('flash_unified/flash_unified.js') %>">
+              <link rel="modulepreload" href="<%= asset_path('flash_unified/network_helpers.js') %>">
+              <link rel="modulepreload" href="<%= asset_path('flash_unified/turbo_helpers.js') %>">
               <link rel="modulepreload" href="<%= asset_path('flash_unified/auto.js') %>">
-              <script type="module">
-                import "<%= asset_path('flash_unified/auto.js') %>";
+              <script type="importmap">
+                {
+                  "imports": {
+                    "flash_unified": "<%= asset_path('flash_unified/flash_unified.js') %>",
+                    "flash_unified/auto": "<%= asset_path('flash_unified/auto.js') %>",
+                    "flash_unified/turbo_helpers": "<%= asset_path('flash_unified/turbo_helpers.js') %>",
+                    "flash_unified/network_helpers": "<%= asset_path('flash_unified/network_helpers.js') %>"
+                  }
+                }
               </script>
+              <script type="module">
+                import "flash_unified/auto";
+              </script>
+
+              Remove the `import "flash_unified/auto";` line if you don't want automatic initialization.
 
           How to place partials in your layout
           - The gem's view helpers render engine partials. After running this generator you'll have the partials available under `app/views/flash_unified` and can customize them as needed.
