@@ -125,11 +125,22 @@ pin "flash_unified/auto", to: "flash_unified/auto.js"
 
 この gem が提供する JavaScript は ES モジュールですので、上述 `pin` の代わりに、レイアウトなど適切な箇所に次のように設置します：
 ```erb
+<link rel="modulepreload" href="<%= asset_path('flash_unified/flash_unified.js') %>">
+<link rel="modulepreload" href="<%= asset_path('flash_unified/network_helpers.js') %>">
+<link rel="modulepreload" href="<%= asset_path('flash_unified/turbo_helpers.js') %>">
+<link rel="modulepreload" href="<%= asset_path('flash_unified/auto.js') %>">
+<script type="importmap">
+  {
+    "imports": {
+      "flash_unified": "<%= asset_path('flash_unified/flash_unified.js') %>",
+      "flash_unified/auto": "<%= asset_path('flash_unified/auto.js') %>",
+      "flash_unified/turbo_helpers": "<%= asset_path('flash_unified/turbo_helpers.js') %>",
+      "flash_unified/network_helpers": "<%= asset_path('flash_unified/network_helpers.js') %>"
+    }
+  }
+</script>
 <script type="module">
-  import "<%= asset_path('flash_unified/flash_unified.js') %>";
-  import "<%= asset_path('flash_unified/network_helpers.js') %>";
-  import "<%= asset_path('flash_unified/turbo_helpers.js') %>";
-  import "<%= asset_path('flash_unified/auto.js') %>";
+  import "flash_unified/auto";
 </script>
 ```
 

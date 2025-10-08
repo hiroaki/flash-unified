@@ -6,10 +6,22 @@ after_bundle do
   # Inject module script into application layout to import via asset pipeline
   layout_file = 'app/views/layouts/application.html.erb'
   module_script = <<~ERB
+    <link rel="modulepreload" href="<%= asset_path('flash_unified/flash_unified.js') %>">
+    <link rel="modulepreload" href="<%= asset_path('flash_unified/network_helpers.js') %>">
+    <link rel="modulepreload" href="<%= asset_path('flash_unified/turbo_helpers.js') %>">
     <link rel="modulepreload" href="<%= asset_path('flash_unified/auto.js') %>">
+    <script type="importmap">
+      {
+        "imports": {
+          "flash_unified": "<%= asset_path('flash_unified/flash_unified.js') %>",
+          "flash_unified/auto": "<%= asset_path('flash_unified/auto.js') %>",
+          "flash_unified/turbo_helpers": "<%= asset_path('flash_unified/turbo_helpers.js') %>",
+          "flash_unified/network_helpers": "<%= asset_path('flash_unified/network_helpers.js') %>"
+        }
+      }
+    </script>
     <script type="module">
-      import "<%= asset_path('flash_unified/auto.js') %>";
-      <!-- Optionally control via <html data-flash-unified-*> attributes -->
+      import "flash_unified/auto";
     </script>
   ERB
 

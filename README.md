@@ -127,14 +127,24 @@ If you prefer to control those events yourself, import the core `flash_unified` 
 
 **Asset pipeline (Propshaft / Sprockets):**
 
-Since the JavaScript is an ES module, instead of pinning, import it from your layout as a module:
-
+This gem's JavaScript is provided as ES modules. Instead of `pin`ning, add the following to an appropriate place in your layout:
 ```erb
+<link rel="modulepreload" href="<%= asset_path('flash_unified/flash_unified.js') %>">
+<link rel="modulepreload" href="<%= asset_path('flash_unified/network_helpers.js') %>">
+<link rel="modulepreload" href="<%= asset_path('flash_unified/turbo_helpers.js') %>">
+<link rel="modulepreload" href="<%= asset_path('flash_unified/auto.js') %>">
+<script type="importmap">
+  {
+    "imports": {
+      "flash_unified": "<%= asset_path('flash_unified/flash_unified.js') %>",
+      "flash_unified/auto": "<%= asset_path('flash_unified/auto.js') %>",
+      "flash_unified/turbo_helpers": "<%= asset_path('flash_unified/turbo_helpers.js') %>",
+      "flash_unified/network_helpers": "<%= asset_path('flash_unified/network_helpers.js') %>"
+    }
+  }
+</script>
 <script type="module">
-  import "<%= asset_path('flash_unified/flash_unified.js') %>";
-  import "<%= asset_path('flash_unified/network_helpers.js') %>";
-  import "<%= asset_path('flash_unified/turbo_helpers.js') %>";
-  import "<%= asset_path('flash_unified/auto.js') %>";
+  import "flash_unified/auto";
 </script>
 ```
 
