@@ -8,7 +8,20 @@ module FlashUnified
 
       class_option :force, type: :boolean, default: false, desc: "Overwrite existing files"
 
+      # Print a clear start message so users see the generator run boundary.
+      # Using `say_status :run` follows the Rails generator convention (colored label).
+      # Print a start message once per generator run. An optional `note` will be
+      # appended to the message to provide context (e.g. "copy javascript").
+      def start_message(note = nil)
+        return if @flash_unified_started
+        message = "Installing FlashUnified"
+        message += " — #{note}" if note
+        say_status :run, message, :blue
+        @flash_unified_started = true
+      end
+
       def copy_javascript
+        start_message("copy javascript")
         installer = FlashUnified::Installer.new(source_root: File.expand_path('../../../../', __dir__), target_root: Dir.pwd, force: options[:force])
         installer.copy_javascript do |status, path|
           say_status status, path.to_s
@@ -17,6 +30,7 @@ module FlashUnified
 
       # View partials are copied into your host app so you can customize them.
       def copy_view_partials
+        start_message("copy view partials")
         installer = FlashUnified::Installer.new(source_root: File.expand_path('../../../../', __dir__), target_root: Dir.pwd, force: options[:force])
         installer.copy_views do |status, path|
           say_status status, path.to_s
@@ -24,6 +38,7 @@ module FlashUnified
       end
 
       def copy_locales
+        start_message("copy locales")
         installer = FlashUnified::Installer.new(source_root: File.expand_path('../../../../', __dir__), target_root: Dir.pwd, force: options[:force])
         installer.copy_locales do |status, path|
           say_status status, path.to_s
