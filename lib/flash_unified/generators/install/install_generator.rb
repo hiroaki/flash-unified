@@ -10,21 +10,24 @@ module FlashUnified
 
       def copy_javascript
         installer = FlashUnified::Installer.new(source_root: File.expand_path('../../../../', __dir__), target_root: Dir.pwd, force: options[:force])
-        result = installer.copy_javascript
-        say_status result, "app/javascript/flash_unified"
+        installer.copy_javascript do |status, path|
+          say_status status, path.to_s
+        end
       end
 
       # View partials are copied into your host app so you can customize them.
       def copy_view_partials
         installer = FlashUnified::Installer.new(source_root: File.expand_path('../../../../', __dir__), target_root: Dir.pwd, force: options[:force])
-        result = installer.copy_views
-        say_status result, "app/views/flash_unified"
+        installer.copy_views do |status, path|
+          say_status status, path.to_s
+        end
       end
 
       def copy_locales
         installer = FlashUnified::Installer.new(source_root: File.expand_path('../../../../', __dir__), target_root: Dir.pwd, force: options[:force])
-        result = installer.copy_locales
-        say_status result, "config/locales"
+        installer.copy_locales do |status, path|
+          say_status status, path.to_s
+        end
       end
 
       def show_importmap_instructions
