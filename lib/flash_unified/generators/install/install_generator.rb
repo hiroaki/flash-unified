@@ -9,32 +9,22 @@ module FlashUnified
       class_option :force, type: :boolean, default: false, desc: "Overwrite existing files"
 
       def copy_javascript
-        say_status :copy, "app/javascript/flash_unified"
         installer = FlashUnified::Installer.new(source_root: File.expand_path('../../../../', __dir__), target_root: Dir.pwd, force: options[:force])
         result = installer.copy_javascript
-        case result
-        when :created
-          say_status :create, "app/javascript/flash_unified"
-        when :overwritten
-          say_status :overwrite, "app/javascript/flash_unified"
-        else
-          say_status :skip, "app/javascript/flash_unified"
-        end
+        say_status result, "app/javascript/flash_unified"
       end
 
       # View partials are copied into your host app so you can customize them.
       def copy_view_partials
-        say_status :copy, "app/views/flash_unified"
         installer = FlashUnified::Installer.new(source_root: File.expand_path('../../../../', __dir__), target_root: Dir.pwd, force: options[:force])
-        installer.copy_views
-        say_status :create, "app/views/flash_unified"
+        result = installer.copy_views
+        say_status result, "app/views/flash_unified"
       end
 
       def copy_locales
-        say_status :copy, "config/locales"
         installer = FlashUnified::Installer.new(source_root: File.expand_path('../../../../', __dir__), target_root: Dir.pwd, force: options[:force])
-        installer.copy_locales
-        say_status :create, "config/locales"
+        result = installer.copy_locales
+        say_status result, "config/locales"
       end
 
       def show_importmap_instructions

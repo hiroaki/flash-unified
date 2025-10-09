@@ -36,16 +36,10 @@ module FlashUnified
     def copy_locales
       src_dir = source_root.join('config', 'locales')
       dst_dir = target_root.join('config', 'locales')
-      return unless src_dir.directory?
+      return :skip unless src_dir.directory?
       FileUtils.mkdir_p(dst_dir) unless dst_dir.exist?
-      Dir.glob(src_dir.join('*.yml')).each do |src|
-        dst = dst_dir.join(File.basename(src))
-        if dst.exist?
-          FileUtils.cp(src, dst) if force
-        else
-          FileUtils.cp(src, dst)
-        end
-      end
+      files = Dir.glob(src_dir.join('*.yml')).map { |p| File.basename(p) }
+      copy_files(files, src_dir, dst_dir)
     end
 
     private
@@ -57,30 +51,38 @@ module FlashUnified
           FileUtils.rm_rf(dst)
           FileUtils.mkdir_p(dst)
           FileUtils.cp_r(File.join(src, '.'), dst)
-          :overwritten
+          :overwrite
         else
-          :skipped
+          :skip
         end
       else
         FileUtils.mkdir_p(dst)
         FileUtils.cp_r(File.join(src, '.'), dst)
-        :created
+        :create
       end
     end
 
     def copy_files(list, src_dir, dst_dir)
-      return unless src_dir.directory?
+      return :skip unless src_dir.directory?
       FileUtils.mkdir_p(dst_dir) unless dst_dir.exist?
+      status = :skip
       list.each do |fname|
         src = src_dir.join(fname)
         next unless src.file?
         dst = dst_dir.join(fname)
         if dst.exist?
-          FileUtils.cp(src, dst) if force
+          if force
+            FileUtils.cp(src, dst)
+            status = :overwrite unless status == :create
+          else
+            # skip existing file
+          end
         else
           FileUtils.cp(src, dst)
+          status = :create
         end
       end
+      status
     end
   end
 end
