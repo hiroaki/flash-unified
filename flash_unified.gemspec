@@ -21,9 +21,24 @@ Gem::Specification.new do |spec|
   spec.metadata["rubygems_mfa_required"] = "true"
 
   # Specify which files should be added to the gem when it is released.
-  # The `git ls-files -z` loads the files in the RubyGem that have been added into git.
-  spec.files         = Dir.chdir(File.expand_path('..', __FILE__)) do
-    `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features|gemfiles|sandbox|bin|tmp)/}) }
+  # Use a whitelist approach: explicitly include only the files and folders
+  # that are needed at runtime by the gem. This prevents accidentally
+  # packaging development-only files such as CI workflows, Appraisals and tests.
+  spec.files = Dir.chdir(File.expand_path('..', __FILE__)) do
+    files = Dir[
+      "lib/**/*",
+      "app/**/*",
+      "config/locales/*",
+      "app/views/**/*",
+      "app/javascript/**/*",
+      "LICENSE",
+      "README.md",
+      "CHANGELOG.md",
+      "flash_unified.gemspec"
+    ].reject { |f| File.directory?(f) }
+    # Ensure version file is included
+    files << "lib/flash_unified/version.rb" unless files.include?("lib/flash_unified/version.rb")
+    files.uniq
   end
   spec.require_paths = ["lib"]
 
