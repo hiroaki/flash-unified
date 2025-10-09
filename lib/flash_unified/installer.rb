@@ -36,7 +36,6 @@ module FlashUnified
     def copy_locales
       src_dir = source_root.join('config', 'locales')
       dst_dir = target_root.join('config', 'locales')
-      return :skip unless src_dir.directory?
       FileUtils.mkdir_p(dst_dir) unless dst_dir.exist?
       files = Dir.glob(src_dir.join('*.yml')).map { |p| File.basename(p) }
       copy_files(files, src_dir, dst_dir)
@@ -63,7 +62,7 @@ module FlashUnified
     end
 
     def copy_files(list, src_dir, dst_dir)
-      return :skip unless src_dir.directory?
+      raise "source missing: #{src_dir}" unless src_dir.directory?
       FileUtils.mkdir_p(dst_dir) unless dst_dir.exist?
       status = :skip
       list.each do |fname|
