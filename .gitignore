@@ -6,3 +6,16 @@
 /pkg/
 /spec/reports/
 /tmp/
+
+Gemfile.lock
+/gemfiles/*.gemfile.lock
+/gemfiles/.bundle/
+
+/test/reports/
+/test/tmp/
+/test/dummy/tmp/*
+!/test/dummy/tmp/.keep
+/test/dummy/log/*
+!/test/dummy/log/.keep
+/test/dummy/storage/*
+!/test/dummy/storage/.keep

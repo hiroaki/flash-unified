@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html data-flash-unified-enable-network-errors="true">
+  <head>
+    <title>Dummy</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <link rel="modulepreload" href="<%= asset_path('flash_unified/flash_unified.js') %>">
+    <link rel="modulepreload" href="<%= asset_path('flash_unified/network_helpers.js') %>">
+    <link rel="modulepreload" href="<%= asset_path('flash_unified/turbo_helpers.js') %>">
+    <link rel="modulepreload" href="<%= asset_path('flash_unified/auto.js') %>">
+    <script type="importmap">
+      {
+        "imports": {
+          "flash_unified": "<%= asset_path('flash_unified/flash_unified.js') %>",
+          "flash_unified/auto": "<%= asset_path('flash_unified/auto.js') %>",
+          "flash_unified/turbo_helpers": "<%= asset_path('flash_unified/turbo_helpers.js') %>",
+          "flash_unified/network_helpers": "<%= asset_path('flash_unified/network_helpers.js') %>"
+        }
+      }
+    </script>
+
+    <%= stylesheet_link_tag "application" %>
+
+    <%= javascript_include_tag "turbo", type: "module" %>
+
+    <script type="module">
+      // Use convenience auto entry to install Turbo listeners and render on load
+      import "flash_unified/auto";
+    </script>
+  </head>
+
+  <body>
+    <div id="versions" style="color: #999999">
+      Ruby <span data-version-of="ruby"><%= RUBY_VERSION %></span> /
+      Rails <span data-version-of="rails"><%= Rails.version %></span> /
+      Turbo <span data-version-of="turbo-rails"><%= Gem.loaded_specs['turbo-rails']&.version %></span>
+    </div>
+    <div id="time-current" style="color: #999999">
+      <span><%= Time.current.strftime("%Y-%m-%d %H:%M:%S.%L") %></span>
+    </div>
+
+    <%= flash_global_storage %>
+    <%= flash_templates %>
+    <%= flash_general_error_messages %>
+
+    <%= yield %>
+  </body>
+</html>

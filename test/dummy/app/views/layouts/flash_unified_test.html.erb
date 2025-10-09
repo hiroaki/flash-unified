@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html data-flash-unified-enable-network-errors="true">
+  <head>
+    <title>FlashUnified Test</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <script type="importmap">
+    {
+      "imports": {
+        "flash_unified": "<%= asset_path('flash_unified/flash_unified.js') %>",
+        "flash_unified/auto": "<%= asset_path('flash_unified/auto.js') %>",
+        "flash_unified/turbo_helpers": "<%= asset_path('flash_unified/turbo_helpers.js') %>",
+        "flash_unified/network_helpers": "<%= asset_path('flash_unified/network_helpers.js') %>"
+      }
+    }
+    </script>
+    <%= stylesheet_link_tag "application" %>
+    <%= javascript_include_tag "turbo", type: "module" %>
+    <script type="module">
+      // Use auto entry + an extra render after init for test expectations
+      import "flash_unified/auto";
+      import { renderFlashMessages } from "flash_unified";
+      const init = () => { Promise.resolve().then(() => renderFlashMessages()); };
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", init);
+      } else {
+        init();
+      }
+    </script>
+  </head>
+  <body>
+    <%= flash_global_storage %>
+    <%= flash_templates %>
+    <%= flash_general_error_messages %>
+    <%= flash_container %>
+
+    <%= yield %>
+  </body>
+  </html>

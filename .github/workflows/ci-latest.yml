@@ -1,0 +1,31 @@
+name: CI - latest combo
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches: [ develop ]
+  workflow_dispatch:
+
+jobs:
+  latest:
+    name: Run bin/test on latest combo
+    runs-on: ubuntu-latest
+    env:
+      APPRAISAL: 'rails-8.0'
+      RUBY_VERSION: '3.3'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+          bundler-cache: true
+      - name: Install gems for appraisal
+        run: |
+          bundle exec appraisal "${APPRAISAL}" bundle install --jobs 1 --retry 2
+      - name: Run bin/test
+        run: |
+          APPRAISAL="${APPRAISAL}" bin/test

@@ -1,0 +1,138 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Run dummy app tests across Appraisals using rake tasks.
+# New CLI (breaking change): SUITE first, then Rails version (Appraisal)
+# Usage:
+#   bin/test [suite] [appraisal]
+#     - Both args default to 'all' when omitted
+#     - Suite is required when specifying an appraisal (suite-first CLI)
+#   suite: system | generators | unit | all
+#   appraisal: rails-7.1 | rails-7.2 | rails-8.0 | all
+# Examples:
+#   bin/test                     # runs all suites for all appraisals (default)
+#   bin/test all all             # explicit: all suites × all appraisals
+#   bin/test system              # system tests for all appraisals
+#   bin/test generators rails-7.1
+#   bin/test unit all
+#   bin/test all rails-7.2
+
+SUITE=${1:-all}
+# Default requested appraisal to $APPRAISAL when provided (e.g., in CI), otherwise 'all'
+REQUESTED=${2:-${APPRAISAL:-all}}
+
+# Minimal logging to help CI: show selected suite and appraisal
+echo "Params: SUITE='${SUITE}' REQUESTED='${REQUESTED}' APPRAISAL='${APPRAISAL:-}'"
+
+# Defensive fallback: if REQUESTED is still 'all' but APPRAISAL is set, prefer the env (CI safety)
+if [[ "$REQUESTED" == "all" && -n "${APPRAISAL:-}" ]]; then
+  REQUESTED="$APPRAISAL"
+fi
+
+usage() {
+  cat <<USAGE
+Usage: $(basename "$0") [suite] [appraisal]
+  - Both args default to 'all' when omitted
+  - Suite is required when specifying an appraisal (suite-first CLI)
+  suite: system | generators | unit | all
+  appraisal: rails-7.1 | rails-7.2 | rails-8.0 | all
+
+Examples:
+  $(basename "$0")
+  $(basename "$0") all all
+  $(basename "$0") system
+  $(basename "$0") generators rails-7.1
+  $(basename "$0") unit all
+  $(basename "$0") all rails-7.2
+USAGE
+}
+
+if [[ "$SUITE" == "-h" || "$SUITE" == "--help" ]]; then
+  usage
+  exit 0
+fi
+
+# Friendly guard: if the first argument looks like an appraisal, remind about suite-first order
+if [[ "$SUITE" =~ ^rails-[0-9]+\.[0-9]+$ ]]; then
+  echo "Error: You specified an appraisal without a suite. This CLI is suite-first." >&2
+  echo "       Use: $(basename "$0") [suite] [appraisal]  (e.g., '$(basename "$0") system $SUITE')" >&2
+  usage
+  exit 2
+fi
+
+# Validate suite
+case "$SUITE" in
+  system|generators|unit|all)
+    ;;
+  *)
+    echo "Unknown suite: $SUITE" >&2
+    usage
+    exit 2
+    ;;
+esac
+
+if [[ "$SUITE" == "all" ]]; then
+  SUITES=(unit generators system)
+else
+  SUITES=($SUITE)
+fi
+
+# Read Appraisals from `bundle exec appraisal list`. Fail fast if the command isn't available or returns no appraisals.
+if ! command -v bundle >/dev/null 2>&1; then
+  echo "Error: 'bundle' is not available in PATH. Please install Bundler and try again." >&2
+  exit 2
+fi
+
+if ! bundle exec appraisal list >/dev/null 2>&1; then
+  echo "Error: 'bundle exec appraisal list' failed. Ensure the Appraisal gem is installed and Appraisals file exists." >&2
+  exit 2
+fi
+
+APPRAISALS=( )
+while IFS= read -r line; do
+  [[ -z "$line" ]] && continue
+  APPRAISALS+=("$line")
+done < <(bundle exec appraisal list)
+
+if [[ ${#APPRAISALS[@]} -eq 0 ]]; then
+  echo "Error: 'bundle exec appraisal list' returned no appraisals. Aborting." >&2
+  exit 2
+fi
+
+if [[ "$REQUESTED" != "all" ]]; then
+  # validate single appraisal
+  FOUND=false
+  for a in "${APPRAISALS[@]}"; do
+    if [[ "$a" == "$REQUESTED" ]]; then
+      APPRAISALS=("$REQUESTED")
+      FOUND=true
+      break
+    fi
+  done
+  if [[ "$FOUND" == false ]]; then
+    echo "Unknown appraisal (Rails version): $REQUESTED"
+    echo "Supported: ${APPRAISALS[*]}"
+    exit 2
+  fi
+fi
+
+echo "Running $SUITE suite(s) for appraisals: ${APPRAISALS[*]}"
+
+for a in "${APPRAISALS[@]}"; do
+  echo
+  echo "=== Appraisal: $a ==="
+
+  # echo "Preparing dummy DB for $a..."
+  # bundle exec appraisal "$a" bash -lc "cd test/dummy && bundle exec rake db:drop db:create db:migrate RAILS_ENV=test"
+
+  for s in "${SUITES[@]}"; do
+    TASK="test:${s}"
+    echo "Running ${s} tests for $a via 'rake ${TASK}'..."
+    bundle exec appraisal "$a" rake "${TASK}"
+  done
+
+  echo "=== Finished $a ==="
+done
+
+echo
+echo "All requested appraisals completed."
