@@ -1,5 +1,5 @@
 require 'test_helper'
-require 'generators/flash_unified/install/install_generator'
+require 'flash_unified/generators/install/install_generator'
 require 'flash_unified/installer'
 
 class InstallGeneratorTest < Rails::Generators::TestCase
@@ -12,5 +12,10 @@ class InstallGeneratorTest < Rails::Generators::TestCase
     # run_generator will raise if generator invocation fails
     run_generator
     assert true
+  end
+
+  # Test that the generator is recognized by the `rails generate` command
+  def test_generator_is_listed
+    assert_includes Rails::Generators.public_namespaces, "flash_unified:install"
   end
 end

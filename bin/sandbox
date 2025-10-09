@@ -111,11 +111,12 @@ FLASH_UNIFIED_SCAFFOLD=$([[ "$DO_SCAFFOLD" == "true" ]] && echo 1 || echo 0) \
   bin/rails app:template LOCATION="$APP_TEMPLATE"
 
 # Done
+RELATIVE_SANDBOX_DIR=$(ruby -r pathname -e 'puts Pathname.new(ARGV[0]).relative_path_from(ARGV[1])' "$SANDBOX_DIR" "$ROOT_DIR")
 cat <<EOM
 
-Sandbox created at: $SANDBOX_DIR
+Sandbox created at: $RELATIVE_SANDBOX_DIR
 Run:
-  cd $SANDBOX_DIR
+  cd $RELATIVE_SANDBOX_DIR
   bin/rails server
 
 Then visit:

@@ -8,33 +8,41 @@ module FlashUnified
 
       class_option :force, type: :boolean, default: false, desc: "Overwrite existing files"
 
+      # Print a clear start message so users see the generator run boundary.
+      # Using `say_status :run` follows the Rails generator convention (colored label).
+      # Print a start message once per generator run. An optional `note` will be
+      # appended to the message to provide context (e.g. "copy javascript").
+      def start_message(note = nil)
+        return if @flash_unified_started
+        message = "Installing FlashUnified"
+        message += " — #{note}" if note
+        say_status :run, message, :blue
+        @flash_unified_started = true
+      end
+
       def copy_javascript
-        say_status :copy, "app/javascript/flash_unified"
+        start_message("copy javascript")
         installer = FlashUnified::Installer.new(source_root: File.expand_path('../../../../', __dir__), target_root: Dir.pwd, force: options[:force])
-        result = installer.copy_javascript
-        case result
-        when :created
-          say_status :create, "app/javascript/flash_unified"
-        when :overwritten
-          say_status :overwrite, "app/javascript/flash_unified"
-        else
-          say_status :skip, "app/javascript/flash_unified"
+        installer.copy_javascript do |status, path|
+          say_status status, display_path(path)
         end
       end
 
       # View partials are copied into your host app so you can customize them.
       def copy_view_partials
-        say_status :copy, "app/views/flash_unified"
+        start_message("copy view partials")
         installer = FlashUnified::Installer.new(source_root: File.expand_path('../../../../', __dir__), target_root: Dir.pwd, force: options[:force])
-        installer.copy_views
-        say_status :create, "app/views/flash_unified"
+        installer.copy_views do |status, path|
+          say_status status, display_path(path)
+        end
       end
 
       def copy_locales
-        say_status :copy, "config/locales"
+        start_message("copy locales")
         installer = FlashUnified::Installer.new(source_root: File.expand_path('../../../../', __dir__), target_root: Dir.pwd, force: options[:force])
-        installer.copy_locales
-        say_status :create, "config/locales"
+        installer.copy_locales do |status, path|
+          say_status status, display_path(path)
+        end
       end
 
       def show_importmap_instructions
@@ -116,6 +124,23 @@ module FlashUnified
         MSG
 
         say message
+      end
+
+      private
+
+      # Return a user-friendly path for display in generator output. If the
+      # provided path is under the current working directory (Rails root), show
+      # it as a relative path; otherwise show the original path.
+      def display_path(path)
+        path = Pathname.new(path.to_s)
+        begin
+          root = Pathname.new(Dir.pwd)
+          relative = path.relative_path_from(root)
+          relative.to_s
+        rescue ArgumentError
+          # Path not under Dir.pwd — fall back to full path
+          path.to_s
+        end
       end
     end
   end

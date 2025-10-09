@@ -14,13 +14,13 @@ module FlashUnified
       @force = !!force
     end
 
-    def copy_javascript
+    def copy_javascript(&block)
       src = source_root.join('app', 'javascript', 'flash_unified')
       dst = target_root.join('app', 'javascript', 'flash_unified')
-      copy_tree(src, dst)
+      copy_tree(src, dst, &block)
     end
 
-    def copy_views
+    def copy_views(&block)
       src_dir = source_root.join('app', 'views', 'flash_unified')
       dst_dir = target_root.join('app', 'views', 'flash_unified')
       files = %w[
@@ -30,57 +30,66 @@ module FlashUnified
         _container.html.erb
         _general_error_messages.html.erb
       ]
-      copy_files(files, src_dir, dst_dir)
+      copy_files(files, src_dir, dst_dir, &block)
     end
 
-    def copy_locales
+    def copy_locales(&block)
       src_dir = source_root.join('config', 'locales')
       dst_dir = target_root.join('config', 'locales')
-      return unless src_dir.directory?
       FileUtils.mkdir_p(dst_dir) unless dst_dir.exist?
-      Dir.glob(src_dir.join('*.yml')).each do |src|
-        dst = dst_dir.join(File.basename(src))
-        if dst.exist?
-          FileUtils.cp(src, dst) if force
-        else
-          FileUtils.cp(src, dst)
-        end
-      end
+      files = Dir.glob(src_dir.join('*.yml')).map { |p| File.basename(p) }
+      copy_files(files, src_dir, dst_dir, &block)
     end
 
     private
 
-    def copy_tree(src, dst)
+    def copy_tree(src, dst, &block)
       raise "source missing: #{src}" unless src.directory?
+      status = :skip
       if dst.exist?
         if force
           FileUtils.rm_rf(dst)
           FileUtils.mkdir_p(dst)
           FileUtils.cp_r(File.join(src, '.'), dst)
-          :overwritten
+          status = :overwrite
         else
-          :skipped
+          status = :skip
         end
       else
         FileUtils.mkdir_p(dst)
         FileUtils.cp_r(File.join(src, '.'), dst)
-        :created
+        status = :create
       end
+      # Report status for the whole directory
+      block.call(status, dst) if block
+      status
     end
 
-    def copy_files(list, src_dir, dst_dir)
-      return unless src_dir.directory?
+    def copy_files(list, src_dir, dst_dir, &block)
+      raise "source missing: #{src_dir}" unless src_dir.directory?
       FileUtils.mkdir_p(dst_dir) unless dst_dir.exist?
+      status = :skip
       list.each do |fname|
         src = src_dir.join(fname)
         next unless src.file?
         dst = dst_dir.join(fname)
+        file_status = :skip
         if dst.exist?
-          FileUtils.cp(src, dst) if force
+          if force
+            FileUtils.cp(src, dst)
+            file_status = :overwrite
+          else
+            file_status = :skip
+          end
         else
           FileUtils.cp(src, dst)
+          file_status = :create
         end
+        block.call(file_status, dst) if block
+        # Track overall status for return value
+        status = file_status if file_status == :create || (file_status == :overwrite && status != :create)
       end
+      status
     end
   end
 end
