@@ -77,17 +77,10 @@ end
 
 ## インストール
 
-この gem はまだ RubyGems.org に公開していないアルファ版です。インストールは GitHub から行ってください。
-
 アプリケーションの `Gemfile` に次を追加します：
 
 ```ruby
-gem 'flash_unified', github: 'hiroaki/flash-unified', branch: 'develop'
-```
-
-変更の影響を受けたくない場合は、特定のコミットに固定してください:
-```
-gem 'flash_unified', github: 'hiroaki/flash-unified', ref: 'abcdef0'
+gem 'flash_unified'
 ```
 
 その後、次を実行します：
@@ -222,9 +215,9 @@ Flash メッセージを表示したい場所に配置します：
 
 ### テンプレートのカスタマイズ
 
-表示される Flash の見た目やマークアップのカスタマイズは、インストール・ジェネレータによってホストとなる Rails アプリにコピーされる、パーシャル・テンプレート `app/views/flash_unified/` を編集してください。
+表示される Flash の見た目やマークアップのカスタマイズは、インストール・ジェネレータによってホストとなる Rails アプリにコピーされる、パーシャル・テンプレート `app/views/flash_unified/_templates.html.erb` を編集してください。
 
-以下は一部抜粋です（`app/views/flash_unified/_templates.html.erb`）：
+以下は一部抜粋です：
 
 ```erb
 <template id="flash-message-template-notice">
@@ -262,7 +255,7 @@ JavaScript はコア・ライブラリとオプションのヘルパー群に分
 ```js
 import { appendMessageToStorage, renderFlashMessages } from "flash_unified";
 
-appendMessageToStorage("保存しました", "notice");
+appendMessageToStorage("ファイルサイズが大きすぎます。", "notice");
 renderFlashMessages();
 ```
 
@@ -281,14 +274,14 @@ installCustomEventListener();
 // 例：配列で渡す
 document.dispatchEvent(new CustomEvent('flash-unified:messages', {
   detail: [
-    { type: 'notice', message: '保存しました' },
-    { type: 'warning', message: '警告メッセージ' }
+    { type: 'notice', message: '送信しました。' },
+    { type: 'warning', message: '有効期限は一週間です。' }
   ]
 }));
 
 // 例：オブジェクトで渡す
 document.dispatchEvent(new CustomEvent('flash-unified:messages', {
-  detail: { messages: [ { type: 'alert', message: '失敗しました' } ] }
+  detail: { messages: [ { type: 'alert', message: '操作はキャンセルされました。' } ] }
 }));
 ```
 

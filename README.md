@@ -80,16 +80,10 @@ Generator:
 
 ## Installation
 
-This gem is an alpha and not published on RubyGems.org. Install from GitHub by adding to your application's `Gemfile`:
+Add the following to your application's `Gemfile`:
 
 ```ruby
-gem 'flash_unified', github: 'hiroaki/flash-unified', branch: 'develop'
-```
-
-If you want to avoid changes, pin to a specific commit:
-
-```ruby
-gem 'flash_unified', github: 'hiroaki/flash-unified', ref: 'abcdef0'
+gem 'flash_unified'
 ```
 
 Then run:
@@ -225,7 +219,9 @@ Embed `flash_storage` inside the response content (for Turbo Frame responses, re
 
 ### Template customization
 
-Customize appearance by editing the partials copied into `app/views/flash_unified/` by the generator. An excerpt from `_templates.html.erb`:
+To customize the appearance and markup of Flash messages, edit the partial template `app/views/flash_unified/_templates.html.erb` that is copied into your host Rails application by the installer generator.
+
+Here is a partial example:
 
 ```erb
 <template id="flash-message-template-notice">
@@ -261,17 +257,33 @@ Use `appendMessageToStorage()` and `renderFlashMessages()` to produce client-ori
 ```js
 import { appendMessageToStorage, renderFlashMessages } from "flash_unified";
 
-appendMessageToStorage("Saved", "notice");
+appendMessageToStorage("File size too large.", "notice");
 renderFlashMessages();
 ```
 
 ### Custom event
 
-Call `installCustomEventListener()` at initialization and dispatch `flash-unified:messages` when needed:
+To use custom events, run `installCustomEventListener()` during initialization:
 
 ```js
+import { installCustomEventListener } from "flash_unified";
+installCustomEventListener();
+```
+
+Then, at any desired timing, dispatch a `flash-unified:messages` event on the document:
+
+```js
+// Example: passing an array
 document.dispatchEvent(new CustomEvent('flash-unified:messages', {
-  detail: [ { type: 'notice', message: 'Saved' } ]
+  detail: [
+    { type: 'notice', message: 'Sent successfully.' },
+    { type: 'warning', message: 'Expires in one week.' }
+  ]
+}));
+
+// Example: passing an object
+document.dispatchEvent(new CustomEvent('flash-unified:messages', {
+  detail: { messages: [ { type: 'alert', message: 'Operation was cancelled.' } ] }
 }));
 ```
 
@@ -298,7 +310,7 @@ notifyNetworkError();
 notifyHttpError(413);
 ```
 
-These helpers read messages from the server-rendered `flash_general_error_messages` element. The strings are provided by locale files copied by the generator into `config/locales`.
+The messages used here are output as hidden elements by the server-side view helper `flash_general_error_messages`. The original message strings are installed as I18n translation files in `config/locales` by the generator. To change these messages, edit the translations in the corresponding locale file.
 
 ### Auto initialization entry (`flash_unified/auto`)
 
@@ -313,7 +325,7 @@ Importing `flash_unified/auto` runs initialization after DOM ready. The behavior
 
 ## Development
 
-See `DEVELOPMENT.md` and `DEVELOPMENT.ja.md` for development and testing instructions.
+See [DEVELOPMENT.md](DEVELOPMENT.md) or [DEVELOPMENT.ja.md](DEVELOPMENT.ja.md) for development and testing instructions.
 
 ## License
 
