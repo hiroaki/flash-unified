@@ -1,41 +1,49 @@
 # Developer Guide
 
-This guide helps new contributors get started quickly and safely. It summarizes the current test layout, CI, helper scripts, and frequently used commands. The focus is on clarity and practical steps.
+This document summarizes the current state of test structure, CI, and helper scripts for this project.
 
-## 1. Current snapshot
+## 1. Current Summary
 
-### Supported matrix
+### Supported Versions
 
+The Ruby and Rails versions currently tested are:
 - Ruby: 3.2, 3.3
 - Rails: 7.1.5.2, 7.2.2.2, 8.0.3
 
-### Testing & tooling
+### Testing & Tooling
 
-| Item | Status / description | References |
-|------|-----------------------|------------|
-| Unit tests | Present | `test/unit` |
-| Generator tests | Present (minimal) | `test/generators/install_generator_test.rb` |
-| System tests | Present (JS via cuprite). Includes Turbo Drive/Frame flows and error handling | `test/system/dummies_system_test.rb`, `test/system/dummy_home_test.rb`, `test/application_system_test_case.rb` |
-| JS unit tests | Not introduced | Consider jsdom + vitest when JS complexity grows |
-| Multi-Rails compatibility | Appraisals in place (Rails 7.1.5.2 / 7.2.2.2 / 8.0.3) | `Appraisals`, `bundle exec appraisal ...` |
-| CI (GitHub Actions) | In place | `.github/workflows/ci.yml` (jobs: unit-tests〈Ruby 3.2/3.3〉, generate-appraisals, generator-tests〈Appraisals matrix〉, system-tests〈Appraisals matrix〉) |
-| Sandbox | Generate local apps for quick checks (Importmap/Propshaft/Sprockets) | `bin/sandbox` (templates: `sandbox/templates/*.rb`) |
-| Helper script | Run unit/generator/system across Appraisals. Suite-first CLI; defaults: `suite=all`, `appraisal=all` | `bin/test` |
+Tests are organized by purpose in separate directories:
 
-## 2. Repository layout
+| Test Category      | Path              |
+|--------------------|-------------------|
+| Unit tests         | `test/unit`       |
+| Generator tests    | `test/generators` |
+| System tests       | `test/system`     |
 
-| Item | Role / notes | Main location |
-|------|--------------|---------------|
-| Engine core | Rails engine initialization and copy logic | `lib/flash_unified/` (e.g., `engine.rb`, `installer.rb`) |
-| Views / JS / locales (distributables) | Partials, client JS, locale files copied to host apps | `app/views/flash_unified/*`<br>`app/javascript/flash_unified/flash_unified.js`<br>`config/locales/http_status_messages.*.yml` |
-| View helper | Helpers to render engine partials | `app/helpers/flash_unified/view_helper.rb` |
-| Tests | Unit / generator / system layers | `test/unit`, `test/generators`, `test/system`, `test/test_helper.rb` |
-| Dummy app | Minimal Rails app for test boot/reproducibility | `test/dummy` |
-| CI | GitHub Actions workflow | `.github/workflows/ci.yml` |
-| Appraisals | Rails version matrix definition | `Appraisals` |
-| Sandbox templates | Local app scaffolding | `bin/sandbox`, `sandbox/templates/*.rb` |
+* JS unit tests are not yet introduced (consider jsdom + vitest in the future). For now, please check JS behavior via system tests.
+* Appraisals are used to switch Rails versions during testing.
+* CI is provided via GitHub Actions.
+* A sandbox tool is available to generate quick disposable test apps (Importmap/Propshaft/Sprockets).
+* Helper script `bin/test`: runs unit/generator/system tests across Appraisals.
 
-## 3. First-time setup
+Details for each item are explained in later sections.
+
+## 2. File Structure
+
+| Item            | Role/Description                          | Location                             |
+|-----------------|-------------------------------------------|--------------------------------------|
+| Engine core     | Rails engine core                         | `lib/flash_unified/`                 |
+| Views           | Templates distributed to host apps        | `app/views/flash_unified/`           |
+| JavaScript      | JS source distributed to host apps        | `app/javascript/flash_unified/`      |
+| Locales         | I18n translation files for host apps      | `config/locales/`                    |
+| View helper     | Helpers for layouts/views                 | `app/helpers/flash_unified/`         |
+| Tests           | Unit/generator/system layers              | `test/{unit,generators,system}`      |
+| Dummy app       | Minimal Rails app for reproducible tests  | `test/dummy`                         |
+| CI              | GitHub Actions workflow                   | `.github/workflows/`                 |
+| Appraisals      | Rails version matrix definition           | `Appraisals`                         |
+| Sandbox         | Scripts/templates for quick test apps     | `bin/sandbox`, `sandbox/templates/`  |
+
+## 3. Development Setup
 
 1) Install dependencies
 
@@ -50,12 +58,12 @@ bundle exec appraisal install
 bin/test
 ```
 
-Notes:
-- Tests requiring specific Rails variants run via Appraisals. `bin/test` is a convenience wrapper to execute unit / generator / system tests across defined Appraisals.
+Note:
+- Tests requiring Rails run via Appraisals. `bin/test` is a wrapper to run unit/generator/system tests across all Rails versions.
 
-## 4. How to run tests (by purpose)
+## 4. How to Run Tests
 
-Run suites separately for clarity and speed.
+You can run tests by purpose.
 
 Signature: `bin/test [suite] [appraisal]`
 
@@ -76,48 +84,56 @@ bin/test unit rails-7.2
 bin/test generators rails-7.2
 bin/test system rails-7.2
 
-# Unit only using current Gemfile
+# Unit tests only (using current Gemfile)
 bundle exec rake test:unit
 
-# Appraisal-scoped Rake invocations
+# Run Rake directly with Appraisal
 bundle exec appraisal rails-7.2 rake test:unit
 bundle exec appraisal rails-7.2 rake test:generators
 bundle exec appraisal rails-7.2 rake test:system
 
-# Reference: single-file run (pure Ruby)
-bundle exec rake test TEST=test/unit/flash_unified_test.rb
+# Reference: run a single file (no Rails required)
+bundle exec rake test TEST=test/unit/target_test.rb
 
-# Reference: single-file run
-bundle exec rake test TEST=test/unit/view_helper_test.rb
+# Reference: run a single file (requires Rails)
 bundle exec appraisal rails-7.2 rake test TEST=test/system/target_test.rb
 ```
 
-For system tests that require JavaScript, the Capybara driver uses cuprite, so a Chrome browser must be available in your environment.
+The Capybara driver for system tests uses cuprite, so a Chrome browser is required in your environment.
 
-With cuprite, if you set the environment variable `HEADLESS=0`, tests will run in non-headless mode. You can also set `SLOWMO` to a number of seconds to add a delay between steps. Combining these allows you to observe browser actions visually:
+A custom cuprite configuration is applied in the test setup. With cuprite, set `HEADLESS=0` to disable headless mode, and set `SLOWMO` to add a delay between steps. This lets you observe browser actions:
 
 ```
 HEADLESS=0 SLOWMO=0.3 bin/test system rails-7.2
 ```
 
-## 5. Dummy app vs Sandbox
+## 5. Dummy App and Sandbox
 
-- Dummy app (`test/dummy`)
-  - Purpose: reproducibility for automated tests.
-  - Used by CI as the execution baseline.
+### Dummy App `test/dummy`
 
-- Sandbox (`bin/sandbox`)
-  - Purpose: quick, disposable local experiments (Importmap/Propshaft/Sprockets).
-  - Examples:
-    ```
-    bin/sandbox importmap
-    bin/sandbox propshaft --scaffold
-    bin/sandbox sprockets --path ../..
-    ```
-  - Follow the script output to `bin/rails server` and verify in a browser.
+A committed Rails app ensures reproducibility for automated tests. CI also runs against this app.
 
-## A. Outlook
+### Sandbox Command `bin/sandbox`
 
-- Enrich generator tests (assert duplicate-prevention and content details).
-- Introduce a minimal JS unit-test layer when it adds clear value (e.g., jsdom + vitest).
-- Add representative system scenarios (Turbo Frame/Stream basics) as the next step.
+For local testing, you can quickly generate Rails apps with Importmap, Propshaft, or Sprockets.
+
+Add the `--scaffold` option to create Memo resources (controller, model, views).
+
+Examples:
+```
+bin/sandbox importmap
+bin/sandbox propshaft --scaffold
+bin/sandbox sprockets --scaffold --path ../..
+```
+
+Follow the instructions after generation to start the server with `bin/rails server`.
+
+## A. Contributing
+
+Bugs, feature requests, and pull requests are welcome. Please:
+
+- For questions, use [Discussions](https://github.com/hiroaki/flash-unified/discussions) instead of Issues.
+- When changing code, always add or update tests and make sure all tests pass with `bin/test`.
+- Submit pull requests against the latest `develop` branch, and describe your changes, purpose, and how you verified them in the PR description.
+
+Thank you for your cooperation!
