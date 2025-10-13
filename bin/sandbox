@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Usage: bin/sandbox <variant> [--path <path_to_gem_root>] [--scaffold]
+# Variants:
+#   importmap   -> Rails app with importmap JS (default), asset pipeline default
+#   propshaft   -> Rails app with importmap JS and Propshaft asset pipeline
+#   sprockets   -> Rails app with importmap JS and Sprockets asset pipeline
+# Examples:
+#   bin/sandbox importmap
+#   bin/sandbox propshaft --path ../..   # explicit relative path (when pushing sandbox branch)
+#   bin/sandbox sprockets --scaffold     # optional scaffold and migrate
+#
+# By default, this script writes a RELATIVE path to the gem into the sandbox Gemfile
+# (e.g. '../..' from sandbox/<name> to the repo root) so that the sandbox can be
+# committed and pushed. Use --path to override with a custom path (relative or absolute).
+#
+# This script scaffolds a Rails sandbox app, installs this gem via path,
+# runs the install generator, wires importmap, initializes JS, and inserts
+# layout helpers. It aims to give you a ready-to-run app quickly.
+
+NAME=${1:-}
+if [[ -z "$NAME" ]]; then
+  echo "Usage: $(basename "$0") <variant: importmap|propshaft|sprockets> [--path <gem_path>] [--scaffold]" >&2
+  exit 1
+fi
+
+# Determine repo root (gem root) first, used for defaults
+ROOT_DIR=$(cd "$(dirname "$0")/.." && pwd)
+
+# Defaults
+GEM_PATH="$ROOT_DIR"   # Will be replaced with a relative path unless --path is given
+GEM_PATH_OVERRIDDEN=false
+DO_SCAFFOLD=false
+
+# Parse optional flags
+shift
+while (( $# )); do
+  case "$1" in
+    --path)
+      GEM_PATH=${2:-"../"}
+      GEM_PATH_OVERRIDDEN=true
+      shift 2
+      ;;
+    --scaffold)
+      DO_SCAFFOLD=true
+      shift 1
+      ;;
+    *)
+      echo "Unknown option: $1" >&2
+      exit 1
+      ;;
+  esac
+done
+
+SANDBOX_DIR="$ROOT_DIR/sandbox/$NAME"
+
+if [[ -d "$SANDBOX_DIR" ]]; then
+  echo "Sandbox already exists: $SANDBOX_DIR" >&2
+  exit 1
+fi
+
+mkdir -p "$ROOT_DIR/sandbox"
+
+# Build rails new command with appropriate JS and asset pipeline settings
+rails_new=(rails new "$NAME" --skip-git --skip-bundle)
+case "$NAME" in
+  importmap)
+    rails_new+=(--javascript=importmap)
+    ;;
+  propshaft)
+    rails_new+=(--asset-pipeline=propshaft --skip-javascript)
+    ;;
+  sprockets)
+    rails_new+=(--asset-pipeline=sprockets --skip-javascript)
+    ;;
+  *)
+    # default to importmap if unknown variant
+    rails_new+=(--javascript=importmap)
+    ;;
+esac
+
+# Create rails app without git init and without auto bundle
+( cd "$ROOT_DIR/sandbox" && "${rails_new[@]}" )
+
+cd "$SANDBOX_DIR"
+
+# If the user did not override --path, compute a relative path from sandbox app to repo root
+if [[ "$GEM_PATH_OVERRIDDEN" != "true" ]]; then
+  RELATIVE_GEM_PATH=$(ruby -e 'require "pathname"; puts Pathname.new(ARGV[0]).relative_path_from(Pathname.new(ARGV[1]))' "$ROOT_DIR" "$SANDBOX_DIR")
+  GEM_PATH="$RELATIVE_GEM_PATH"
+fi
+
+# Add gem via path
+cat >> Gemfile <<GEM
+
+gem 'flash_unified', path: '$GEM_PATH'
+GEM
+
+bundle install
+
+# Run install generator (force to keep iteration easy)
+bin/rails generate flash_unified:install --force
+
+# Apply app template matching the variant (falls back to importmap)
+APP_TEMPLATE="$ROOT_DIR/sandbox/templates/$NAME.rb"
+if [[ ! -f "$APP_TEMPLATE" ]]; then
+  APP_TEMPLATE="$ROOT_DIR/sandbox/templates/importmap.rb"
+fi
+FLASH_UNIFIED_SCAFFOLD=$([[ "$DO_SCAFFOLD" == "true" ]] && echo 1 || echo 0) \
+  bin/rails app:template LOCATION="$APP_TEMPLATE"
+
+# Done
+RELATIVE_SANDBOX_DIR=$(ruby -r pathname -e 'puts Pathname.new(ARGV[0]).relative_path_from(ARGV[1])' "$SANDBOX_DIR" "$ROOT_DIR")
+cat <<EOM
+
+Sandbox created at: $RELATIVE_SANDBOX_DIR
+Run:
+  cd $RELATIVE_SANDBOX_DIR
+  bin/rails server
+
+Then visit:
+  $( [[ "$DO_SCAFFOLD" == "true" ]] && echo "http://localhost:3000/memos" || echo "http://localhost:3000/" )
+
+EOM

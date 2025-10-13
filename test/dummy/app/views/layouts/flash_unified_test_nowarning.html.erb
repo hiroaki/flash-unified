@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html data-flash-unified-enable-network-errors="true">
+  <head>
+    <title>FlashUnified Test (no warning tmpl)</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <script type="importmap">
+    {
+      "imports": {
+        "flash_unified": "<%= asset_path('flash_unified/flash_unified.js') %>",
+        "flash_unified/auto": "<%= asset_path('flash_unified/auto.js') %>",
+        "flash_unified/turbo_helpers": "<%= asset_path('flash_unified/turbo_helpers.js') %>",
+        "flash_unified/network_helpers": "<%= asset_path('flash_unified/network_helpers.js') %>"
+      }
+    }
+    </script>
+    <%= stylesheet_link_tag "application" %>
+    <%= javascript_include_tag "turbo", type: "module" %>
+    <script type="module">
+      import "flash_unified/auto";
+      import { renderFlashMessages } from "flash_unified";
+      const init = () => { Promise.resolve().then(() => renderFlashMessages()); };
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", init);
+      } else {
+        init();
+      }
+    </script>
+  </head>
+  <body>
+    <%= flash_global_storage %>
+    <%= flash_general_error_messages %>
+
+    <!-- Only notice and alert templates (warning intentionally omitted) -->
+    <template id="flash-message-template-notice">
+      <div class="flash-notice" role="alert"><span class="flash-message-text"></span></div>
+    </template>
+    <template id="flash-message-template-alert">
+      <div class="flash-alert" role="alert"><span class="flash-message-text"></span></div>
+    </template>
+
+    <%= flash_container %>
+    <%= yield %>
+  </body>
+  </html>

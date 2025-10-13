@@ -1,0 +1,91 @@
+name: CI - fullset
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  generate-appraisals:
+    name: Generate Appraisals list
+    runs-on: ubuntu-latest
+    outputs:
+      appraisals: ${{ steps.generate.outputs.appraisals }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.2
+          bundler-cache: true
+      - name: Install dependencies (fresh)
+        run: |
+          bundle config set --local path 'vendor/bundle'
+          bundle config set --local without 'production'
+          bundle install --jobs 1 --retry 2
+      - name: Generate appraisals JSON from `appraisal list`
+        id: generate
+        shell: bash
+        run: |
+          set -euo pipefail
+          APPS=$(bundle exec appraisal list || true)
+          if [ -z "${APPS}" ]; then
+            echo "ERROR: 'appraisal list' returned no entries" >&2
+            exit 2
+          fi
+          # Build JSON array safely without jq
+          JSON=$(printf '%s\n' "$APPS" | awk 'NF{gsub(/"/,"\\\""); printf "%s\"%s\"", sep, $0; sep=","} END{print ""}')
+          echo "appraisals=[$JSON]" >> "$GITHUB_OUTPUT"
+
+  all-tests:
+    name: All tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: generate-appraisals
+    strategy:
+      matrix:
+        ruby: [3.2, 3.3]
+        appraisal: ${{ fromJson(needs.generate-appraisals.outputs.appraisals) }}
+      # limit parallel matrix cells to avoid overwhelming rubygems.org
+      max-parallel: 2
+    env:
+      APPRAISAL: ${{ matrix.appraisal }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+
+      - name: Ensure no Gemfile.lock influence
+        run: |
+          # Remove any checked-in Gemfile.lock to force fresh resolution in CI
+          if [ -f Gemfile.lock ]; then git rm -f --ignore-unmatch Gemfile.lock || true; fi
+
+      - name: Warm selected appraisal dependencies
+        run: |
+          echo "Installing gems for APPRAISAL='${APPRAISAL}'"
+          bundle exec appraisal "${APPRAISAL}" bundle install --jobs 1 --retry 2
+
+      - name: Check installed browser (install if missing)
+        run: |
+          echo "which chrome/google-chrome chromium chromium-browser:"
+          which google-chrome-stable || which google-chrome || which chrome || which chromium-browser || which chromium || true
+          echo "versions:"
+          google-chrome-stable --version 2>/dev/null || google-chrome --version 2>/dev/null || chrome --version 2>/dev/null || chromium-browser --version 2>/dev/null || chromium --version 2>/dev/null || echo "no chrome/chromium found"
+          if ! (which google-chrome-stable || which google-chrome || which chrome || which chromium-browser || which chromium); then
+            echo "Installing chromium..."
+            sudo apt-get update -y
+            sudo apt-get install -y chromium-browser --no-install-recommends
+          fi
+
+      - name: Run bin/test
+        run: |
+          echo "Running all tests with APPRAISAL='${APPRAISAL}' (matrix='${{ matrix.appraisal }}', ruby='${{ matrix.ruby }}')"
+          bin/test

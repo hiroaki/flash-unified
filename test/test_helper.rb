@@ -1,4 +1,5 @@
-$LOAD_PATH.unshift File.expand_path("../lib", __dir__)
-require "flash_unified"
-
+ENV["RAILS_ENV"] ||= "test"
+require_relative "dummy/config/environment"
+require "rails/test_help"
+require_relative "support/capybara"
 require "minitest/autorun"
