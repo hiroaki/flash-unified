@@ -11,6 +11,8 @@
   - clearFlashMessages(message?): clear displayed messages
   - processMessagePayload(payload): handle message arrays from custom events
   - startMutationObserver(): watch for dynamically inserted storage/templates
+  - consumeFlashMessages(keep = false): collect messages from hidden storage; by default removes the storage elements (destructive)
+  - aggregateFlashMessages(): collect messages from hidden storage without removing storage elements (non-destructive)
 
   Required DOM (no Rails helpers needed)
   1) Display container (required)
@@ -54,6 +56,21 @@
       appendMessageToStorage(event.detail.message, event.detail.type);
       renderFlashMessages();
     });
+
+    // Example: forward aggregated messages to an external notifier object
+    // Common notifier APIs expose methods like object.info(), object.warn(), object.error().
+    import { aggregateFlashMessages } from "flash_unified";
+    document.addEventListener('turbo:load', () => {
+      const msgs = aggregateFlashMessages();
+      // Replace `window.notifier` with your notifier object reference
+      const notifier = window.notifier;
+      if (!notifier) return;
+      msgs.forEach(({ type, message }) => {
+        // map flash types to common notifier methods
+        const method = (type === 'alert' || type === 'error') ? 'error' : (type === 'warning' ? 'warn' : 'info');
+        if (typeof notifier[method] === 'function') notifier[method](message);
+      });
+    });
 */
 
 /* 初回描画リスナーをセットします。
@@ -78,10 +95,25 @@ function installInitialRenderListener() {
   and append them into [data-flash-message-container]. Each storage is removed after processing.
 */
 function renderFlashMessages() {
-  const storages = document.querySelectorAll('[data-flash-storage]');
   const containers = document.querySelectorAll('[data-flash-message-container]');
 
-  // Aggregated messages list
+  const messages = consumeFlashMessages(false);
+  containers.forEach(container => {
+    messages.forEach(({ type, message }) => {
+      if (message) container.appendChild(createFlashMessageNode(type, message));
+    });
+  });
+}
+
+/* [data-flash-storage] からメッセージ配列を取得し、デフォルトでストレージ要素を削除します。
+   keep=true で削除せず取得のみ。
+   ---
+   Collects all messages from [data-flash-storage] elements.
+   By default, removes storage elements after collecting. Set keep=true to preserve them.
+   Returns: Array of { type, message }
+*/
+function consumeFlashMessages(keep = false) {
+  const storages = document.querySelectorAll('[data-flash-storage]');
   const messages = [];
   storages.forEach(storage => {
     const ul = storage.querySelector('ul');
@@ -90,15 +122,20 @@ function renderFlashMessages() {
         messages.push({ type: li.dataset.type || 'notice', message: li.textContent.trim() });
       });
     }
-    // Remove storage after consuming
-    storage.remove();
+    if (!keep) storage.remove();
   });
+  return messages;
+}
 
-  containers.forEach(container => {
-    messages.forEach(({ type, message }) => {
-      if (message) container.appendChild(createFlashMessageNode(type, message));
-    });
-  });
+/* [data-flash-storage] からメッセージ配列を集約して返します（ストレージは削除しません）。
+   consumeFlashMessages(true) を呼ぶ薄いラッパーです。
+   ---
+   Aggregate messages from all [data-flash-storage] elements and return them
+   without removing the storage elements. This is a thin wrapper that calls
+   `consumeFlashMessages(true)`. Returns an array of { type, message }.
+*/
+function aggregateFlashMessages() {
+  return consumeFlashMessages(true);
 }
 
 /* フラッシュ・メッセージ項目として message をデータとして埋め込みます。
@@ -303,5 +340,7 @@ export {
   startMutationObserver,
   installCustomEventListener,
   installInitialRenderListener,
-  storageHasMessages
+  storageHasMessages,
+  consumeFlashMessages,
+  aggregateFlashMessages
 };
