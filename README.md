@@ -252,6 +252,7 @@ The JavaScript is split into a core library and optional helpers. Use only what 
 - `storageHasMessages()` — utility to detect existing messages in storage.
 - `startMutationObserver()` — (optional / experimental) monitor insertion of storages/templates and render them.
 - `consumeFlashMessages(keep = false)` — scan all `[data-flash-storage]` elements on the current page and return an array of messages ({ type, message }[]). By default this operation is destructive and removes the storage elements; pass `keep: true` to read without removing.
+ - `consumeFlashMessages(keep = false)` — scan all `[data-flash-storage]` elements on the current page and return an array of messages ({ type, message }[]). By default this operation is destructive and removes the storage elements; pass `keep = true` to read without removing.
 - `aggregateFlashMessages()` — a thin wrapper over `consumeFlashMessages(true)` that returns the aggregated messages without removing storage elements. Useful for forwarding messages to external notifier libraries.
 
 Use `appendMessageToStorage()` and `renderFlashMessages()` to produce client-originated Flash messages:

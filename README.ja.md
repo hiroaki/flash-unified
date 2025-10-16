@@ -250,6 +250,7 @@ JavaScript はコア・ライブラリとオプションのヘルパー群に分
 - `storageHasMessages()` — ストレージ内に既存メッセージがあるか判定するユーティリティです。
 - `startMutationObserver()` — （オプション：試験的）ストレージ/テンプレートの挿入を監視して描画します。
 - `consumeFlashMessages(keep = false)` — 現在のページに埋め込まれているすべての `[data-flash-storage]` を走査してメッセージ配列（{ type, message }[]）を返します。デフォルトではストレージ要素を削除する破壊的な動作を行いますが、`keep: true` を渡すとストレージを残したまま取得だけを行います。
+ - `consumeFlashMessages(keep = false)` — 現在のページに埋め込まれているすべての `[data-flash-storage]` を走査してメッセージ配列（{ type, message }[]）を返します。デフォルトではストレージ要素を削除する破壊的な動作を行いますが、`keep = true` を渡すとストレージを残したまま取得だけを行います。
 - `aggregateFlashMessages()` — `consumeFlashMessages(true)` の薄いラッパーで、非破壊的にストレージを走査してメッセージ配列を返します。外部のトーストライブラリなどにメッセージを渡して処理する際に便利です。
 
 クライアント内で生成した Flash メッセージを任意のタイミングで表示するには、次のようにメッセージの埋め込みを行ってから、描画処理を行うようにします：
