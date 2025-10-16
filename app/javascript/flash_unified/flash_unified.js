@@ -1,83 +1,20 @@
-/*
-  Flash Unified — Minimal Core API
+/**
+ * flash_unified — Core utilities for reading and rendering embedded flash messages.
+ *
+ * See README.md for full usage examples and integration notes.
+ *
+ * @module flash_unified
+ */
 
-  Purpose
-  - Provide core utilities for flash message rendering.
-  - Users control when and how to trigger rendering via their own event handlers.
-
-  Core API:
-  - renderFlashMessages(): render all messages from storage into containers
-  - appendMessageToStorage(message, type): add a message to hidden storage
-  - clearFlashMessages(message?): clear displayed messages
-  - processMessagePayload(payload): handle message arrays from custom events
-  - startMutationObserver(): watch for dynamically inserted storage/templates
-  - consumeFlashMessages(keep = false): collect messages from hidden storage; by default removes the storage elements (destructive)
-  - aggregateFlashMessages(): collect messages from hidden storage without removing storage elements (non-destructive)
-
-  Required DOM (no Rails helpers needed)
-  1) Display container (required)
-     <div data-flash-message-container></div>
-
-  2) Hidden storage (optional; any number; removed after render)
-     <div data-flash-storage style="display:none;">
-       <ul>
-         <li data-type="notice">Saved</li>
-         <li data-type="alert">Oops</li>
-       </ul>
-     </div>
-
-  3) Message templates, one per type (root should have role="alert" and include
-     a .flash-message-text node for insertion)
-     <template id="flash-message-template-notice">
-       <div class="flash-notice" role="alert"><span class="flash-message-text"></span></div>
-     </template>
-     <template id="flash-message-template-alert">
-       <div class="flash-alert" role="alert"><span class="flash-message-text"></span></div>
-     </template>
-
-  4) Global storage (required by appendMessageToStorage)
-     <div id="flash-storage" style="display:none;"></div>
-
-  Usage Examples:
-    // Manual control with Stimulus
-    import { renderFlashMessages, appendMessageToStorage } from "flash_unified";
-    export default class extends Controller {
-      connect() { renderFlashMessages(); }
-      error() {
-        appendMessageToStorage('Error occurred', 'alert');
-        renderFlashMessages();
-      }
-    }
-
-    // Custom event listener
-    import { renderFlashMessages } from "flash_unified";
-    document.addEventListener('turbo:load', renderFlashMessages);
-    document.addEventListener('my-app:show-message', (event) => {
-      appendMessageToStorage(event.detail.message, event.detail.type);
-      renderFlashMessages();
-    });
-
-    // Example: forward aggregated messages to an external notifier object
-    // Common notifier APIs expose methods like object.info(), object.warn(), object.error().
-    import { aggregateFlashMessages } from "flash_unified";
-    document.addEventListener('turbo:load', () => {
-      const msgs = aggregateFlashMessages();
-      // Replace `window.notifier` with your notifier object reference
-      const notifier = window.notifier;
-      if (!notifier) return;
-      msgs.forEach(({ type, message }) => {
-        // map flash types to common notifier methods
-        const method = (type === 'alert' || type === 'error') ? 'error' : (type === 'warning' ? 'warn' : 'info');
-        if (typeof notifier[method] === 'function') notifier[method](message);
-      });
-    });
-*/
-
-/* 初回描画リスナーをセットします。
-   DOMContentLoaded 時に renderFlashMessages() を一度だけ呼びます。
-   ---
-   Install a listener to render flash messages on DOMContentLoaded (once).
-*/
+/**
+ * Install a one-time listener that calls `renderFlashMessages()` on initial page load.
+ *
+ * @example
+ * import { installInitialRenderListener } from 'flash_unified';
+ * installInitialRenderListener();
+ *
+ * @returns {void}
+ */
 function installInitialRenderListener() {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function() { renderFlashMessages(); }, { once: true });
@@ -86,14 +23,16 @@ function installInitialRenderListener() {
   }
 }
 
-/* ストレージにあるメッセージを表示させます。
-  すべての [data-flash-storage] 内のリスト項目を集約し、各項目ごとにテンプレートを用いて
-  フラッシュメッセージ要素を生成し、[data-flash-message-container] に追加します。
-  処理後は各ストレージ要素を取り除きます。
-  ---
-  Render messages found in all [data-flash-storage] lists, create elements via templates,
-  and append them into [data-flash-message-container]. Each storage is removed after processing.
-*/
+/**
+ * Render messages found in storages into message containers.
+ * Delegates message collection to `consumeFlashMessages(false)`, which removes the storage elements.
+ *
+ * @example
+ * import { renderFlashMessages } from 'flash_unified';
+ * renderFlashMessages();
+ *
+ * @returns {void}
+ */
 function renderFlashMessages() {
   const containers = document.querySelectorAll('[data-flash-message-container]');
 
@@ -105,13 +44,16 @@ function renderFlashMessages() {
   });
 }
 
-/* [data-flash-storage] からメッセージ配列を取得し、デフォルトでストレージ要素を削除します。
-   keep=true で削除せず取得のみ。
-   ---
-   Collects all messages from [data-flash-storage] elements.
-   By default, removes storage elements after collecting. Set keep=true to preserve them.
-   Returns: Array of { type, message }
-*/
+/**
+ * Collect messages from all `[data-flash-storage]` elements.
+ * By default, removes each storage after reading; pass `keep = true` to preserve them.
+ *
+ * @param {boolean} [keep=false] - When true, do not remove storage elements after reading.
+ * @returns {{type: string, message: string}[]} Array of message objects.
+ *
+ * @example
+ * const msgs = consumeFlashMessages(true);
+ */
 function consumeFlashMessages(keep = false) {
   const storages = document.querySelectorAll('[data-flash-storage]');
   const messages = [];
@@ -127,33 +69,33 @@ function consumeFlashMessages(keep = false) {
   return messages;
 }
 
-/* [data-flash-storage] からメッセージ配列を集約して返します（ストレージは削除しません）。
-   consumeFlashMessages(true) を呼ぶ薄いラッパーです。
-   ---
-   Aggregate messages from all [data-flash-storage] elements and return them
-   without removing the storage elements. This is a thin wrapper that calls
-   `consumeFlashMessages(true)`. Returns an array of { type, message }.
-*/
+/**
+ * Return messages without removing the storage elements.
+ * Thin wrapper over `consumeFlashMessages(true)`.
+ *
+ * @returns {{type: string, message: string}[]}
+ *
+ * @example
+ * const msgs = aggregateFlashMessages();
+ */
 function aggregateFlashMessages() {
   return consumeFlashMessages(true);
 }
 
-/* フラッシュ・メッセージ項目として message をデータとして埋め込みます。
-  埋め込まれた項目は renderFlashMessages を呼び出すことによって表示されます。
-  ---
-  Append a message item into the hidden storage.
-  Call renderFlashMessages() to display it.
-*/
+/**
+ * Append a message to the global storage element (`#flash-storage`).
+ *
+ * @param {string} message - The message text to append.
+ * @param {string} [type='notice'] - The flash type (e.g. 'notice', 'alert').
+ * @returns {void}
+ *
+ * @example
+ * appendMessageToStorage('Saved', 'notice');
+ */
 function appendMessageToStorage(message, type = 'notice') {
   const storageContainer = document.getElementById("flash-storage");
   if (!storageContainer) {
     console.error('[FlashUnified] #flash-storage not found. Define <div id="flash-storage" style="display:none"></div> in layout.');
-    // TODO: あるいは自動生成して document.body.appendChild しますか？
-    // ユーザの目に見えない部分で要素が増えることを避けたいと考え、警告に留めています。
-    // 下で storage を生成する部分は、ユーザが設定するコンテナの中なので問題ありません。
-    // ---
-    // Alternatively we could auto-create it on document.body, but we avoid hidden side-effects.
-    // Creating the inner [data-flash-storage] below is safe since it's inside the user-provided container.
     return;
   }
 
@@ -177,12 +119,17 @@ function appendMessageToStorage(message, type = 'notice') {
   ul.appendChild(li);
 }
 
-/* カスタムイベントリスナーを設定します（オプション）。
-  サーバーや他のJSからのカスタムイベントを受け取ります。
-  ---
-  Setup custom event listener for programmatic message dispatch.
-  Listen for "flash-unified:messages" events from server or other JS.
-*/
+/**
+ * Install a listener for `flash-unified:messages` CustomEvent and process its payload.
+ * The event's `detail` should be either an array of message objects or an object with a `messages` array.
+ *
+ * @example
+ * document.dispatchEvent(new CustomEvent('flash-unified:messages', {
+ *   detail: [{ type: 'notice', message: 'Hi' }]
+ * }));
+ *
+ * @returns {void}
+ */
 function installCustomEventListener() {
   const root = document.documentElement;
   if (root.hasAttribute('data-flash-unified-custom-listener')) return; // idempotent
@@ -197,22 +144,20 @@ function installCustomEventListener() {
   });
 }
 
-/* フラッシュ・メッセージの表示をクリアします。
-  message が指定されている場合は、そのメッセージを含んだフラッシュ・メッセージのみを削除します。
-  省略された場合はすべてのフラッシュ・メッセージが対象です。
-  ---
-  Clear flash messages. If message is provided, remove only matching ones;
-  otherwise remove all flash message nodes in the containers.
-*/
+/**
+ * Clear rendered flash messages from message containers.
+ * If `message` is provided, only remove elements whose text exactly matches it.
+ *
+ * @param {string} [message] - Exact message text to remove (optional).
+ * @returns {void}
+ */
 function clearFlashMessages(message) {
   document.querySelectorAll('[data-flash-message-container]').forEach(container => {
-    // メッセージ指定なし: メッセージ要素のみ全削除（コンテナ内の他要素は残す）
     if (typeof message === 'undefined') {
       container.querySelectorAll('[data-flash-message]')?.forEach(n => n.remove());
       return;
     }
 
-    // 指定メッセージに一致する要素だけ削除
     container.querySelectorAll('[data-flash-message]')?.forEach(n => {
       const text = n.querySelector('.flash-message-text');
       if (text && text.textContent.trim() === message) n.remove();
@@ -220,15 +165,14 @@ function clearFlashMessages(message) {
   });
 }
 
-// --- ユーティリティ関数 / Utility functions ---
-
-/* テンプレートからフラッシュ・メッセージ要素を生成します。
-  type に対応する <template id="flash-message-template-<type>"> を利用し、
-  .flash-message-text に文言を挿入します。テンプレートが無い場合は簡易的な要素を生成します。
-  ---
-  Create a flash message DOM node using <template id="flash-message-template-<type>">.
-  Inserts the message into .flash-message-text. Falls back to a minimal element when template is missing.
-*/
+/**
+ * Create a DOM node for a flash message using the `flash-message-template-<type>` template.
+ * Falls back to a minimal element when the template is missing.
+ *
+ * @param {string} type
+ * @param {string} message
+ * @returns {Element}
+ */
 function createFlashMessageNode(type, message) {
   const templateId = `flash-message-template-${type}`;
   const template = document.getElementById(templateId);
@@ -249,7 +193,7 @@ function createFlashMessageNode(type, message) {
     return root;
   } else {
     console.error(`[FlashUnified] No template found for type: ${type}`);
-    // テンプレートがない場合は生成 / Fallback element when template is missing
+    // Fallback element when template is missing
     const node = document.createElement('div');
     node.setAttribute('role', 'alert');
     node.setAttribute('data-flash-message', 'true');
@@ -261,10 +205,11 @@ function createFlashMessageNode(type, message) {
   }
 }
 
-/* 何らかのストレージにメッセージが存在するかを判定します。
-  ---
-  Return true if any [data-flash-storage] contains at least one <li> item.
-*/
+/**
+ * Return true if any `[data-flash-storage]` contains at least one `<li>`.
+ *
+ * @returns {boolean}
+ */
 function storageHasMessages() {
   const storages = document.querySelectorAll('[data-flash-storage]');
   for (const storage of storages) {
@@ -276,11 +221,15 @@ function storageHasMessages() {
   return false;
 }
 
-/* メッセージの配列（または { messages: [...] }）を受け取り、ストレージに追加して描画します。
-  ---
-  Handle a payload of messages and render them.
-  Accepts either an array of { type, message } or an object { messages: [...] }.
-*/
+/**
+ * Accept either:
+ *   - an array of message objects [{ type, message }, ...], or
+ *   - an object { messages: [...] } where messages is such an array.
+ * Append each message to storage and trigger rendering.
+ *
+ * @param {Array|Object} payload
+ * @returns {void}
+ */
 function processMessagePayload(payload) {
   if (!payload) return;
   const list = Array.isArray(payload)
@@ -294,13 +243,12 @@ function processMessagePayload(payload) {
   renderFlashMessages();
 }
 
-/* 任意: MutationObserver を有効化し、動的に挿入されたストレージ/テンプレートを検出して描画します。
-  サーバーレスポンス側でカスタムイベントを発火できない場合の代替となります。
-  ---
-  Optional: Enable a MutationObserver that watches for dynamically inserted
-  flash storage or templates and triggers rendering. Useful when you cannot
-  or do not want to dispatch a custom event from server responses.
-*/
+/**
+ * Enable a MutationObserver that watches for dynamically inserted storages, templates,
+ * or message containers and triggers rendering. Useful when server responses cannot dispatch events.
+ *
+ * @returns {void}
+ */
 function startMutationObserver() {
   const root = document.documentElement;
   if (root.hasAttribute('data-flash-unified-observer-enabled')) return;
