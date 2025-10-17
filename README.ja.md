@@ -39,9 +39,10 @@ FlashUnified は、サーバーサイドとクライアントサイドの両方�
 
 そして Flash メッセージを表示する場所である「コンテナ」、および整形のための「テンプレート」はストレージとは関係なく任意の場所に配置します。つまり Turbo Frame であっても、フレームの外側に配置されている Flash 描画領域に対して機能します。
 
-また例えばフォームを送信した時にプロキシがエラー 413 を返してきた場合、そうしたケースを検知するようにしておき、その際 JavaScript から直接的にエラーメッセージを表示をするのではなく、いったんコンテナ要素として埋め込みを行えば、同じように（同じテンプレート、同じ処理フローを用いて）Flash を描画することができます。
+フォームを送信した時にプロキシがエラーを返しくるようなケースをクライアントサイドで処理する場合は、 JavaScript から直接的にエラーメッセージを表示をするのではなく、メッセージをいったんコンテナ要素として埋め込むことによって、同じように（同じテンプレート、同じ処理フローを用いて）Flash を描画することができるようになります。
 
 一方で Flash をセットするコントーラでは、通常の Flashメッセージの表示の手続きとなんら変わるところがありません：
+
 ```ruby
 if @user.save
   redirect_to @user, notice: "Created successfully."
@@ -91,18 +92,16 @@ bundle install
 
 ## セットアップ
 
-### 1. ファイルの配置
+### 1. ファイルの配置（カスタマイズが必要な場合のみ）
 
-ジェネレータが用意されていますので、それを実行します：
-```bash
-bin/rails generate flash_unified:install
-```
+この gem は JavaScript、テンプレートおよびロケールの翻訳ファイルをエンジン内から提供します。カスタマイズしたい場合のみ、該当するファイルをジェネレータでコピーして編集してください。詳しくは後述します。
 
 ### 2. JavaScript ライブラリの設置
 
 **Importmap の場合**
 
 `config/importmap.rb` に、使用する JavaScript を pin してください：
+
 ```ruby
 pin "flash_unified", to: "flash_unified/flash_unified.js"
 pin "flash_unified/network_helpers", to: "flash_unified/network_helpers.js"
@@ -116,7 +115,6 @@ pin "flash_unified/auto", to: "flash_unified/auto.js"
 
 **アセットパイプライン（Propshaft / Sprockets） の場合**
 
-この gem が提供する JavaScript は ES モジュールですので、上述 `pin` の代わりに、レイアウトなど適切な箇所に次のように設置します：
 ```erb
 <link rel="modulepreload" href="<%= asset_path('flash_unified/flash_unified.js') %>">
 <link rel="modulepreload" href="<%= asset_path('flash_unified/network_helpers.js') %>">
@@ -215,7 +213,13 @@ Flash メッセージを表示したい場所に配置します：
 
 ### テンプレートのカスタマイズ
 
-表示される Flash の見た目やマークアップのカスタマイズは、インストール・ジェネレータによってホストとなる Rails アプリにコピーされる、パーシャル・テンプレート `app/views/flash_unified/_templates.html.erb` を編集してください。
+Flash 要素の見た目やマークアップをカスタマイズしたい場合は、まず次のコマンドでテンプレートをホストアプリにコピーしてください：
+
+```bash
+bin/rails generate flash_unified:install --templates
+```
+
+コピーされた `app/views/flash_unified/_templates.html.erb` を編集することで、自由にカスタマイズできます。
 
 以下は一部抜粋です：
 
@@ -249,7 +253,6 @@ JavaScript はコア・ライブラリとオプションのヘルパー群に分
 - `installCustomEventListener()` — `flash-unified:messages` を購読してペイロード処理します。
 - `storageHasMessages()` — ストレージ内に既存メッセージがあるか判定するユーティリティです。
 - `startMutationObserver()` — （オプション：試験的）ストレージ/テンプレートの挿入を監視して描画します。
-- `consumeFlashMessages(keep = false)` — 現在のページに埋め込まれているすべての `[data-flash-storage]` を走査してメッセージ配列（{ type, message }[]）を返します。デフォルトではストレージ要素を削除する破壊的な動作を行いますが、`keep: true` を渡すとストレージを残したまま取得だけを行います。
  - `consumeFlashMessages(keep = false)` — 現在のページに埋め込まれているすべての `[data-flash-storage]` を走査してメッセージ配列（{ type, message }[]）を返します。デフォルトではストレージ要素を削除する破壊的な動作を行いますが、`keep = true` を渡すとストレージを残したまま取得だけを行います。
 - `aggregateFlashMessages()` — `consumeFlashMessages(true)` の薄いラッパーで、非破壊的にストレージを走査してメッセージ配列を返します。外部のトーストライブラリなどにメッセージを渡して処理する際に便利です。
 
@@ -326,7 +329,13 @@ notifyHttpError(413); // HTTP ステータス別のメッセージをセット�
 - `notifyNetworkError()` — `#general-error-messages` から汎用ネットワークエラーの文言を利用して描画します。
 - `notifyHttpError(status)` — 同様に HTTP ステータス別の文言を利用して描画します。
 
-これらに使われる文言は、サーバーサイドのビュー・ヘルパー `flash_general_error_messages` によって書き出される非表示要素になっており、その元の文言は I18n の翻訳ファイルとして `config/locales` に、ジェネレターによってインストールされます。文言の変更はそのロケール・ファイルの訳文を編集してください。
+これらに使われる文言は、サーバーサイドのビュー・ヘルパー `flash_general_error_messages` によって書き出される非表示要素になっており、その元の文言は I18n の翻訳ファイルとして `config/locales/http_status_messages.*.yml` に配置されています。
+
+デフォルトの翻訳内容をカスタマイズしたい場合は、次のコマンドでファイルをホストアプリに翻訳ファイルをコピーし、編集してください：
+
+```bash
+bin/rails generate flash_unified:install --locales
+```
 
 ### 自動初期化エントリ（`flash_unified/auto`）
 

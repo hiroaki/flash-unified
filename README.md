@@ -2,7 +2,7 @@
 
 FlashUnified provides a unified Flash message rendering mechanism for Rails applications that can be used from both server-side and client-side code.
 
-Server-side view helpers embed Flash messages into the page as data, and a lightweight client-side JavaScript reads those embeddings and renders them onto the page.
+Server-side view helpers embed Flash messages as hidden DOM elements (`data-flash-storage`), and client-side JavaScript scans, formats, and renders them into containers. This enables consistent Flash UI for server messages, Turbo Frame responses, and client-detected errors (e.g., 413 proxy errors).
 
 ## Current status
 
@@ -10,20 +10,20 @@ This project is considered alpha up to v1.0.0. Public APIs are not stable and ma
 
 ## Motivation
 
-Two concerns motivated this work.
+We faced two challenges simultaneously.
 
-One is to be able to present client-originated messages using the same UI as server-side Flash messages. For example, when a large request is blocked by a proxy and a 413 error occurs, the client must handle it because the request does not reach the Rails server; nevertheless we want to display it using the same Flash UI.
+One is to be able to present client-originated messages using the same UI as server-side Flash messages. For example, when a large request is blocked by a proxy and a 413 error occurs, the client must handle it because the request does not reach the Rails server; nevertheless we want to display it using the same Flash UI logic.
 
-The other is to support showing Flash messages that originate from Turbo Frames. Displaying Flash inside a frame is straightforward, but in most applications messages are shown outside the frame.
+The other is to support showing Flash messages that originate from Turbo Frames. Displaying Flash inside a frame is straightforward, but in most cases you want to display them outside the frame.
 
 ## How it works
 
-The key is that rendering must be done on the JavaScript side. We split responsibilities between server and client into two steps:
+The key insight is that rendering must be done on the JavaScript side. We split responsibilities between server and client into two steps:
 
 1. The server embeds the Flash object into the page as hidden DOM elements and returns the rendered page.
 2. The client-side JavaScript detects page changes, scans those elements, reads the embedded messages, formats them using templates, and inserts them into the specified container element. After rendering, the message elements are removed from the DOM to avoid duplicate displays.
 
-This mechanism is simple; the main requirement is to agree on how to embed data. This gem defines a DOM structure for the embedding, which we refer to as "storage":
+This mechanism is simple; the main requirement is to define rules for how to embed data. This gem defines a DOM structure for the embedding, which we call "storage":
 
 ```erb
 <div data-flash-storage style="display: none;">
@@ -35,11 +35,11 @@ This mechanism is simple; the main requirement is to agree on how to embed data.
 </div>
 ```
 
-Because storage is hidden, it can be placed anywhere in the rendered page. For Turbo Frames, place it inside the frame.
+Because storage is a hidden element, it can be placed anywhere in the rendered page. For Turbo Frames, place it inside the frame.
 
-The container (where Flash messages are displayed) and the templates used for formatting are independent of the storage location. In other words, even when storage is inside a Turbo Frame, the rendering can target a container outside the frame.
+The "container" (where Flash messages are displayed) and the "templates" used for formatting are independent of the storage location and can be placed anywhere. This means that even when storage is inside a Turbo Frame, the rendering can target a Flash display area outside the frame.
 
-For client-detected cases (for example, when a proxy returns 413 on form submission), instead of rendering an error message directly from JavaScript, embed the message into a container element and let the same templates and flow render it as a Flash message.
+For client-side handling of cases like proxy errors on form submission, instead of rendering an error message directly from JavaScript, embed the message into a container element first and let the same templates and processing flow render the Flash message.
 
 ### Controller example
 
@@ -54,13 +54,13 @@ else
 end
 ```
 
-Introducing this gem does not require changes to existing controllers. Layout changes are minimal since storage elements are hidden; usually you only need to adjust the container area for Flash messages.
+Introducing this gem does not require changes to existing controllers. There are almost no changes needed to existing page layouts either. The DOM elements to be set in views are hidden elements, and you'll mostly just need to slightly adjust the container area for Flash message display.
 
-The main implementation task when using this gem is deciding when the embedded data should be rendered as Flash messages. Typically this is done with events. The gem provides helpers that automatically set up event handlers, but you may call rendering methods directly where appropriate.
+The main implementation task when using this gem is determining when the embedded data should be rendered as Flash messages. Typically this is done with events. Specific handling is left to the implementer, but helpers for automatic event setup are also provided. You can also explicitly call display methods within arbitrary processing.
 
 ## Main features
 
-This gem provides rules for embedding data and helper tools for implementation.
+This gem provides the mechanism organized according to defined rules and helper tools to support implementation.
 
 Server-side:
 - View helpers that render DOM fragments expected by the client:
@@ -70,7 +70,7 @@ Server-side:
 - Localized messages for HTTP status (for advanced usage)
 
 Client-side:
-- A minimal ES Module in `flash_unified.js`. Configure via Importmap or the asset pipeline.
+- A minimal library in `flash_unified.js` (ES Module). Configure via Importmap or the asset pipeline.
 - `auto.js` for automatic initialization (optional)
 - `turbo_helpers.js` for Turbo integration (optional)
 - `network_helpers.js` for network/HTTP error display (optional)
@@ -94,34 +94,29 @@ bundle install
 
 ## Setup
 
-### 1. Place files
+### 1. File placement (only if customization is needed)
 
-Run the installer generator:
+This gem provides JavaScript, template, and locale translation files from within the engine. Only copy files using the generator if you want to customize them. Details are described below.
 
-```bash
-bin/rails generate flash_unified:install
-```
-
-### 2. Add JavaScript
+### 2. JavaScript library setup
 
 **Importmap:**
 
-`config/importmap.rb` should pin the JavaScript modules you use. The installer generator and sandbox templates pin all shipped modules, but if you manage pins manually, include at least the following:
+Pin the JavaScript modules you use to `config/importmap.rb`:
 
 ```ruby
-pin "flash_unified/auto", to: "flash_unified/auto.js"
 pin "flash_unified", to: "flash_unified/flash_unified.js"
-pin "flash_unified/turbo_helpers", to: "flash_unified/turbo_helpers.js"
 pin "flash_unified/network_helpers", to: "flash_unified/network_helpers.js"
+pin "flash_unified/turbo_helpers", to: "flash_unified/turbo_helpers.js"
+pin "flash_unified/auto", to: "flash_unified/auto.js"
 ```
 
-If you want the library to set up rendering timing automatically, use `auto.js`. `auto.js` will register Turbo integration events, custom event listeners, and perform initial render handling automatically.
+Use `auto.js` to set up rendering timing automatically. `auto.js` automatically handles Turbo integration event registration, custom event registration, and initial page rendering.
 
-If you prefer to control those events yourself, import the core `flash_unified` module and call the provided helpers (for example, `installInitialRenderListener()` for initial render, `installTurboRenderListeners()` from `flash_unified/turbo_helpers` for Turbo lifecycle hooks, and `installCustomEventListener()` to subscribe to `flash-unified:messages`). `turbo_helpers.js` and `network_helpers.js` are optional—pin only the ones you will use.
+If you want to control or implement such events yourself, use the core library `flash_unified.js` to implement rendering processing independently. In that case, `auto.js` is not needed. The helpers `turbo_helpers.js` and `network_helpers.js` are optional, so pin only the ones you will use.
 
 **Asset pipeline (Propshaft / Sprockets):**
 
-This gem's JavaScript is provided as ES modules. Instead of `pin`ning, add the following to an appropriate place in your layout:
 ```erb
 <link rel="modulepreload" href="<%= asset_path('flash_unified/flash_unified.js') %>">
 <link rel="modulepreload" href="<%= asset_path('flash_unified/network_helpers.js') %>">
@@ -146,20 +141,18 @@ This gem's JavaScript is provided as ES modules. Instead of `pin`ning, add the f
 
 When using helpers, ensure the initialization that registers event handlers runs on page load.
 
-**Automatic (simple case):**
+**Automatic initialization (simple implementation case):**
 
-Import `auto.js` in your JS entry (e.g. `app/javascript/application.js`):
-
+When using `auto.js`, import `auto` in your JavaScript entry point (e.g., `app/javascript/application.js`):
 ```js
 import "flash_unified/auto";
 ```
 
-`auto.js` runs initialization when loaded. Its behavior can be controlled with data attributes on `<html>` (described below).
+Initialization processing is executed simultaneously with import. The behavior at that time can be controlled with data attributes on `<html>`. Details are described below.
 
-**Semi-automatic (Turbo events are set automatically):**
+**Semi-automatic control (Turbo events are set up automatically):**
 
-When using `turbo_helpers.js`, initialization is not run automatically after import. Call the provided functions:
-
+When using `turbo_helpers.js`, initialization is not run automatically after import. Call the methods from the imported module:
 ```js
 import { installInitialRenderListener } from "flash_unified";
 import { installTurboRenderListeners } from "flash_unified/turbo_helpers";
@@ -168,58 +161,65 @@ installTurboRenderListeners();
 installInitialRenderListener();
 ```
 
-This ensures Flash messages are rendered when page changes occur (Turbo events).
+This ensures Flash messages are rendered when page changes (Turbo events) are detected.
 
-**Manual (implement your own handlers):**
+**Manual control (implementing event handlers yourself):**
 
-If you implement event registration yourself, at minimum call `renderFlashMessages()` on initial page load. A helper `installInitialRenderListener()` is provided for this purpose:
+When implementing event registration and other aspects yourself, you'll typically need to call `renderFlashMessages()` at least on initial page load to process messages that may have been embedded by the server. This has been prepared as `installInitialRenderListener()` since it's a standard procedure:
 
 ```js
 import { installInitialRenderListener } from "flash_unified";
 installInitialRenderListener();
 ```
 
-Decide an appropriate timing to call `renderFlashMessages()`—typically within an event handler.
+Set up calls to rendering processing at appropriate timing to handle storage elements containing Flash messages embedded by the server. You'll probably write calls to `renderFlashMessages()` within some event handler:
+
+```js
+renderFlashMessages();
+```
 
 ## Server setup
 
 ### Helpers
 
-Server-side view helpers render the DOM fragments the client expects. Most partials do not need changes other than the `flash_templates` partial.
+Server-side view helpers render the DOM fragments (templates, storage, containers, etc.) that the client expects. There are corresponding partial templates for each helper, but generally you don't need to change anything except the partial template for `flash_templates`.
 
-- `flash_global_storage` — a global storage element (includes `id="flash-storage"`).
+- `flash_global_storage` — a globally placed general-purpose storage element (note: includes `id="flash-storage"`).
 - `flash_storage` — a storage element; include it inside the content you return.
-- `flash_templates` — templates (`<template>` elements) used by the client.
-- `flash_container` — the container where Flash messages are displayed.
-- `flash_general_error_messages` — a node with messages for HTTP status codes.
+- `flash_templates` — display element templates used by the client (`<template>` elements).
+- `flash_container` — the container element to place at the target location where users will actually see messages.
+- `flash_general_error_messages` — an element that defines messages for HTTP status codes.
 
-Important: the JavaScript relies on specific DOM contracts (for example, a global storage element with `id="flash-storage"` and template IDs in the form `flash-message-template-<type>`). Changing these IDs/selectors without updating the JavaScript will break integration.
+Important: the JavaScript relies on specific DOM contracts defined by the gem (for example, adding `id="flash-storage"` to global storage elements and template IDs in the form `flash-message-template-<type>`). Changing these IDs or selectors will break integration, so if you make changes, you must also update the corresponding JavaScript code.
 
 ### Minimal layout example
 
-Storage elements can be placed anywhere. Typically they are included near the top of the body:
-
+These are hidden elements so they can be placed anywhere. Typically placing them directly under `<body>` is sufficient:
 ```erb
 <%= flash_general_error_messages %>
 <%= flash_global_storage %>
 <%= flash_templates %>
 ```
 
-Place the visible container where users should see messages:
-
+Place this where you want Flash messages to be displayed:
 ```erb
 <%= flash_container %>
 ```
 
-Embed `flash_storage` inside the response content (for Turbo Frame responses, render it inside the frame):
-
+Embed the Flash message content in the response content. Since this is a hidden element, it can be placed anywhere within that content. If responding to a Turbo Frame, place it so it renders within the target frame:
 ```erb
 <%= flash_storage %>
 ```
 
 ### Template customization
 
-To customize the appearance and markup of Flash messages, edit the partial template `app/views/flash_unified/_templates.html.erb` that is copied into your host Rails application by the installer generator.
+To customize the appearance and markup of Flash elements, first copy the templates to your host app with:
+
+```bash
+bin/rails generate flash_unified:install --templates
+```
+
+You can freely customize by editing the copied `app/views/flash_unified/_templates.html.erb`.
 
 Here is a partial example:
 
@@ -236,7 +236,9 @@ Here is a partial example:
 </template>
 ```
 
-Template IDs like `flash-message-template-notice` map to Flash types (`:notice`, `:alert`, `:warning`). The client inserts the message string into `.flash-message-text`. Otherwise the templates are free-form; add elements such as dismiss buttons as needed.
+Template IDs like `flash-message-template-notice` correspond to Flash "types" (e.g., `:notice`, `:alert`, `:warning`). The client references the type contained in messages to select the corresponding template.
+
+The client inserts the message string into the `.flash-message-text` element within the template. Otherwise there are no constraints. Feel free to add additional elements (e.g., dismiss buttons) as needed.
 
 ## JavaScript API and extensions
 
@@ -251,11 +253,10 @@ The JavaScript is split into a core library and optional helpers. Use only what 
 - `installCustomEventListener()` — subscribe to `flash-unified:messages` and process payloads.
 - `storageHasMessages()` — utility to detect existing messages in storage.
 - `startMutationObserver()` — (optional / experimental) monitor insertion of storages/templates and render them.
-- `consumeFlashMessages(keep = false)` — scan all `[data-flash-storage]` elements on the current page and return an array of messages ({ type, message }[]). By default this operation is destructive and removes the storage elements; pass `keep: true` to read without removing.
  - `consumeFlashMessages(keep = false)` — scan all `[data-flash-storage]` elements on the current page and return an array of messages ({ type, message }[]). By default this operation is destructive and removes the storage elements; pass `keep = true` to read without removing.
 - `aggregateFlashMessages()` — a thin wrapper over `consumeFlashMessages(true)` that returns the aggregated messages without removing storage elements. Useful for forwarding messages to external notifier libraries.
 
-Use `appendMessageToStorage()` and `renderFlashMessages()` to produce client-originated Flash messages:
+To display client-generated Flash messages at arbitrary timing, embed the message first and then perform rendering:
 
 ```js
 import { appendMessageToStorage, renderFlashMessages } from "flash_unified";
@@ -264,7 +265,7 @@ appendMessageToStorage("File size too large.", "notice");
 renderFlashMessages();
 ```
 
-If you want to forward server-embedded messages to a toast/notifier library instead of rendering them in the page, `aggregateFlashMessages()` returns the messages without removing storage so you can pass them to your notifier:
+To pass server-embedded messages to external libraries like toast instead of rendering them in the page, use `aggregateFlashMessages()` to get messages without destroying storage and pass them to your notification library:
 
 ```js
 import { aggregateFlashMessages } from "flash_unified";
@@ -272,21 +273,21 @@ import { aggregateFlashMessages } from "flash_unified";
 document.addEventListener('turbo:load', () => {
   const msgs = aggregateFlashMessages();
   msgs.forEach(({ type, message }) => {
-    YourNotifier[type](message); // e.g. toastr.info(message)
+    YourNotifier[type](message); // like toastr.info(message)
   });
 });
 ```
 
 ### Custom event
 
-To use custom events, run `installCustomEventListener()` during initialization:
+When using custom events, run `installCustomEventListener()` during initialization:
 
 ```js
 import { installCustomEventListener } from "flash_unified";
 installCustomEventListener();
 ```
 
-Then, at any desired timing, dispatch a `flash-unified:messages` event on the document:
+Then, at any desired timing, dispatch a `flash-unified:messages` event to the document:
 
 ```js
 // Example: passing an array
@@ -305,35 +306,43 @@ document.dispatchEvent(new CustomEvent('flash-unified:messages', {
 
 ### Turbo helpers (`flash_unified/turbo_helpers`)
 
-When using Turbo, partial updates require rendering at the appropriate events. Use the helper to register these listeners:
+When using Turbo for partial page updates, you need to perform rendering processing triggered by partial update events. A helper is provided to register those event listeners in bulk:
 
-- `installTurboRenderListeners()` — register Turbo lifecycle listeners.
-- `installTurboIntegration()` — a convenience that combines `installTurboRenderListeners()` and `installCustomEventListener()` (used by `auto.js`).
+- `installTurboRenderListeners()` — register events for rendering according to Turbo lifecycle.
+- `installTurboIntegration()` — intended for use by `auto.js`, combines `installTurboRenderListeners()` and `installCustomEventListener()`.
 
 ```js
 import { installTurboRenderListeners } from "flash_unified/turbo_helpers";
 installTurboRenderListeners();
 ```
 
-### Network/HTTP helpers (`flash_unified/network_helpers`)
+### Network/HTTP error helpers (`flash_unified/network_helpers`)
 
-Use these helpers to set messages for network/HTTP errors:
-
+When using network/HTTP error helpers:
 ```js
 import { notifyNetworkError, notifyHttpError } from "flash_unified/network_helpers";
 
-notifyNetworkError();
-notifyHttpError(413);
+notifyNetworkError(); // Set and render generic network error message
+notifyHttpError(413); // Set and render HTTP status-specific message
 ```
 
-The messages used here are output as hidden elements by the server-side view helper `flash_general_error_messages`. The original message strings are installed as I18n translation files in `config/locales` by the generator. To change these messages, edit the translations in the corresponding locale file.
+- `notifyNetworkError()` — uses generic network error text from `#general-error-messages` for rendering.
+- `notifyHttpError(status)` — similarly uses HTTP status-specific text for rendering.
+
+The text used here is written as hidden elements by the server-side view helper `flash_general_error_messages`, and the original text is placed as I18n translation files in `config/locales/http_status_messages.*.yml`.
+
+To customize the default translation content, copy translation files to your host app with the following command and edit them:
+
+```bash
+bin/rails generate flash_unified:install --locales
+```
 
 ### Auto initialization entry (`flash_unified/auto`)
 
-Importing `flash_unified/auto` runs initialization after DOM ready. The behavior can be controlled with data attributes on `<html>`:
+Importing `flash_unified/auto` automatically runs Turbo integration initialization after DOM ready. The behavior at that time can be controlled with data attributes on `<html>`:
 
 - `data-flash-unified-auto-init="false"` — disable automatic initialization.
-- `data-flash-unified-enable-network-errors="true"` — also enable network/HTTP error listeners.
+- `data-flash-unified-enable-network-errors="true"` — also enable listeners for network/HTTP errors.
 
 ```erb
 <html data-flash-unified-enable-network-errors="true">
@@ -341,7 +350,7 @@ Importing `flash_unified/auto` runs initialization after DOM ready. The behavior
 
 ## Development
 
-See [DEVELOPMENT.md](DEVELOPMENT.md) or [DEVELOPMENT.ja.md](DEVELOPMENT.ja.md) for development and testing instructions.
+For detailed development and testing procedures, see [DEVELOPMENT.md](DEVELOPMENT.md) (English) or [DEVELOPMENT.ja.md](DEVELOPMENT.ja.md) (Japanese).
 
 ## License
 
