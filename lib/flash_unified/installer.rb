@@ -33,6 +33,7 @@ module FlashUnified
     def copy_views(&block)
       src_dir = source_root.join('app', 'views', 'flash_unified')
       dst_dir = target_root.join('app', 'views', 'flash_unified')
+      raise "source missing: #{src_dir}" unless src_dir.directory?
       files = Dir.children(src_dir).select { |f| File.file?(src_dir.join(f)) }
       copy_files(files, src_dir, dst_dir, &block)
     end
