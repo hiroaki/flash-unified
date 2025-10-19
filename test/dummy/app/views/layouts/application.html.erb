@@ -6,6 +6,9 @@
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
 
+    <!-- Polyfill for import maps in environments where native support may be incomplete -->
+    <script async src="https://ga.jspm.io/npm:es-module-shims@2.6.2/dist/es-module-shims.min.js"></script>
+
     <link rel="modulepreload" href="<%= asset_path('flash_unified/flash_unified.js') %>">
     <link rel="modulepreload" href="<%= asset_path('flash_unified/network_helpers.js') %>">
     <link rel="modulepreload" href="<%= asset_path('flash_unified/turbo_helpers.js') %>">
