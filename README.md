@@ -251,6 +251,9 @@ The JavaScript is split into a core library and optional helpers. Use only what 
 - `installCustomEventListener()` — subscribe to `flash-unified:messages` and process payloads.
 - `storageHasMessages()` — utility to detect existing messages in storage.
 - `startMutationObserver()` — (optional / experimental) monitor insertion of storages/templates and render them.
+- `consumeFlashMessages(keep = false)` — scan all `[data-flash-storage]` elements on the current page and return an array of messages ({ type, message }[]). By default this operation is destructive and removes the storage elements; pass `keep: true` to read without removing.
+ - `consumeFlashMessages(keep = false)` — scan all `[data-flash-storage]` elements on the current page and return an array of messages ({ type, message }[]). By default this operation is destructive and removes the storage elements; pass `keep = true` to read without removing.
+- `aggregateFlashMessages()` — a thin wrapper over `consumeFlashMessages(true)` that returns the aggregated messages without removing storage elements. Useful for forwarding messages to external notifier libraries.
 
 Use `appendMessageToStorage()` and `renderFlashMessages()` to produce client-originated Flash messages:
 
@@ -259,6 +262,19 @@ import { appendMessageToStorage, renderFlashMessages } from "flash_unified";
 
 appendMessageToStorage("File size too large.", "notice");
 renderFlashMessages();
+```
+
+If you want to forward server-embedded messages to a toast/notifier library instead of rendering them in the page, `aggregateFlashMessages()` returns the messages without removing storage so you can pass them to your notifier:
+
+```js
+import { aggregateFlashMessages } from "flash_unified";
+
+document.addEventListener('turbo:load', () => {
+  const msgs = aggregateFlashMessages();
+  msgs.forEach(({ type, message }) => {
+    YourNotifier[type](message); // e.g. toastr.info(message)
+  });
+});
 ```
 
 ### Custom event

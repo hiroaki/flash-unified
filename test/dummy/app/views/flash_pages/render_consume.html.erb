@@ -1,0 +1,57 @@
+<h1>Flash Render / Consume Test</h1>
+
+<p>This page is used by system tests to exercise two flows:
+- Render via renderFlashMessages()
+- Consume via consumeFlashMessages(keep)
+</p>
+
+<%= flash_storage %>
+
+<button id="btn-render">Render messages</button>
+<button id="btn-consume">Consume messages (remove)</button>
+<button id="btn-consume-keep">Consume messages (keep)</button>
+
+<!-- Test-only fixed message buttons (call appendMessageToStorage directly) -->
+<button id="add-hello" data-message="Hello" data-type="notice">Add Hello</button>
+<button id="add-oops" data-message="Oops" data-type="alert">Add Oops</button>
+<button id="add-keep-me" data-message="Keep me" data-type="notice">Add Keep me</button>
+
+<!-- Hidden storage for test-consumed JSON. Tests should read and JSON.parse this value. -->
+<textarea id="__lastConsumed" style="display:none"></textarea>
+
+<script type="module">
+  import { renderFlashMessages, consumeFlashMessages, appendMessageToStorage } from "<%= asset_path('flash_unified/flash_unified.js') %>";
+
+  document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('btn-render').addEventListener('click', function() {
+      renderFlashMessages();
+    });
+
+    document.getElementById('btn-consume').addEventListener('click', function() {
+      // consume (destructive)
+      const res = consumeFlashMessages(false);
+      // store JSON in a hidden textarea for tests to read (avoids polluting window)
+      const t = document.getElementById('__lastConsumed');
+      if (t) t.value = JSON.stringify(res);
+    });
+
+    document.getElementById('btn-consume-keep').addEventListener('click', function() {
+      // consume but keep storages
+      const res = consumeFlashMessages(true);
+      const t = document.getElementById('__lastConsumed');
+      if (t) t.value = JSON.stringify(res);
+    });
+
+    document.getElementById('add-hello').addEventListener('click', function() {
+      appendMessageToStorage('Hello', 'notice');
+    });
+
+    document.getElementById('add-oops').addEventListener('click', function() {
+      appendMessageToStorage('Oops', 'alert');
+    });
+
+    document.getElementById('add-keep-me').addEventListener('click', function() {
+      appendMessageToStorage('Keep me', 'notice');
+    });
+  });
+</script>
