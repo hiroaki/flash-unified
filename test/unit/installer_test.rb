@@ -17,6 +17,10 @@ class InstallerTest < Minitest::Test
       File.write(File.join(@src, 'app', 'views', 'flash_unified', fname), "<div>#{fname}</div>")
     end
 
+    # helpers
+    FileUtils.mkdir_p(File.join(@src, 'app', 'helpers', 'flash_unified'))
+    File.write(File.join(@src, 'app', 'helpers', 'flash_unified', 'view_helper.rb'), "module FlashUnified; module ViewHelper; end; end")
+
     FileUtils.mkdir_p(File.join(@src, 'config', 'locales'))
     File.write(File.join(@src, 'config', 'locales', 'http_status_messages.en.yml'), "en:\n  flash: {}\n")
     File.write(File.join(@src, 'config', 'locales', 'http_status_messages.ja.yml'), "ja:\n  flash: {}\n")
@@ -42,6 +46,26 @@ class InstallerTest < Minitest::Test
       assert File.exist?(path), "#{fname} should be copied"
       assert_match(/<div>#{fname}.*<\/div>/, File.read(path))
     end
+  end
+
+  def test_copy_templates_only_copies_templates
+    installer = FlashUnified::Installer.new(source_root: @src, target_root: @dst)
+    installer.copy_templates
+    # _templates exists
+    templates_path = File.join(@dst, 'app', 'views', 'flash_unified', '_templates.html.erb')
+    assert File.exist?(templates_path)
+    # other partials do not
+    %w[_storage.html.erb _global_storage.html.erb _container.html.erb _general_error_messages.html.erb].each do |fname|
+      refute File.exist?(File.join(@dst, 'app', 'views', 'flash_unified', fname)), "#{fname} should not be copied by copy_templates"
+    end
+  end
+
+  def test_copy_helpers_copies_view_helper
+    installer = FlashUnified::Installer.new(source_root: @src, target_root: @dst)
+    installer.copy_helpers
+    helper_path = File.join(@dst, 'app', 'helpers', 'flash_unified', 'view_helper.rb')
+    assert File.exist?(helper_path)
+    assert_match(/module FlashUnified/, File.read(helper_path))
   end
 
   def test_copy_locales_creates_all_locale_files
