@@ -22,6 +22,7 @@ Rails.application.routes.draw do
     get  'auto_off',         to: 'flash_pages#auto_off'
     get  'events_with_message', to: 'flash_pages#events_with_message'
     get  'clear',            to: 'flash_pages#clear'
+    get  'render_consume',   to: 'flash_pages#render_consume'
   end
 
   # Defines the root path route ("/")
