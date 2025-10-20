@@ -48,6 +48,13 @@ class FlashPagesController < ApplicationController
     flash.now[:notice] = 'Clear me (notice)'
   end
 
+  # A dedicated test page used by system tests to exercise render vs consume flows
+  def render_consume
+    # Provide both a storage (server-embedded) and buttons for client actions
+    flash.now[:notice] = 'Server notice for render_consume'
+    flash.now[:alert]  = 'Server alert for render_consume'
+  end
+
   private
 
   def resolve_layout
