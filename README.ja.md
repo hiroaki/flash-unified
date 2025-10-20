@@ -352,6 +352,10 @@ bin/rails generate flash_unified:install --locales
 
 詳細な開発・テスト手順は [DEVELOPMENT.md](DEVELOPMENT.md)（英語）または [DEVELOPMENT.ja.md](DEVELOPMENT.ja.md)（日本語）を参照してください。
 
+## 変更履歴
+
+変更履歴は [GitHub Releases page](https://github.com/hiroaki/flash-unified/releases) を参照してください。
+
 ## ライセンス
 
 本プロジェクトは 0BSD (Zero-Clause BSD) ライセンスの下で公開されています。詳細は `LICENSE` をご確認ください。

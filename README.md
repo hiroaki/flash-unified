@@ -352,6 +352,10 @@ Importing `flash_unified/auto` automatically runs Turbo integration initializati
 
 For detailed development and testing procedures, see [DEVELOPMENT.md](DEVELOPMENT.md) (English) or [DEVELOPMENT.ja.md](DEVELOPMENT.ja.md) (Japanese).
 
+## Changelog
+
+See all release notes on the [GitHub Releases page](https://github.com/hiroaki/flash-unified/releases).
+
 ## License
 
 This project is licensed under 0BSD (Zero-Clause BSD). See `LICENSE` for details.
