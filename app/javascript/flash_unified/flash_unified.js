@@ -7,6 +7,47 @@
  */
 
 /**
+ * Custom renderer function set by user. When null, defaultRenderer is used.
+ * @type {Function|null}
+ */
+let customRenderer = null;
+
+/**
+ * Set a custom renderer function to replace the default DOM-based rendering.
+ * Pass `null` to reset to default behavior.
+ *
+ * @param {Function|null} fn - A function that receives an array of message objects: [{type, message}, ...]
+ * @returns {void}
+ *
+ * @example
+ * import { setFlashMessageRenderer } from 'flash_unified';
+ * // Use toastr for notifications
+ * setFlashMessageRenderer((messages) => {
+ *   messages.forEach(({ type, message }) => {
+ *     toastr[type === 'alert' ? 'error' : 'info'](message);
+ *   });
+ * });
+ */
+function setFlashMessageRenderer(fn) {
+  customRenderer = fn;
+}
+
+/**
+ * Default renderer: renders messages into DOM containers using templates.
+ *
+ * @param {{type: string, message: string}[]} messages - Array of message objects
+ * @returns {void}
+ */
+function defaultRenderer(messages) {
+  const containers = document.querySelectorAll('[data-flash-message-container]');
+  containers.forEach(container => {
+    messages.forEach(({ type, message }) => {
+      if (message) container.appendChild(createFlashMessageNode(type, message));
+    });
+  });
+}
+
+/**
  * Install a one-time listener that calls `renderFlashMessages()` on initial page load.
  *
  * @example
@@ -26,6 +67,7 @@ function installInitialRenderListener() {
 /**
  * Render messages found in storages into message containers.
  * Delegates message collection to `consumeFlashMessages(false)`, which removes the storage elements.
+ * Uses custom renderer if set, otherwise uses default DOM-based rendering.
  *
  * @example
  * import { renderFlashMessages } from 'flash_unified';
@@ -34,14 +76,13 @@ function installInitialRenderListener() {
  * @returns {void}
  */
 function renderFlashMessages() {
-  const containers = document.querySelectorAll('[data-flash-message-container]');
-
   const messages = consumeFlashMessages(false);
-  containers.forEach(container => {
-    messages.forEach(({ type, message }) => {
-      if (message) container.appendChild(createFlashMessageNode(type, message));
-    });
-  });
+
+  if (typeof customRenderer === 'function') {
+    customRenderer(messages);
+  } else {
+    defaultRenderer(messages);
+  }
 }
 
 /**
@@ -282,6 +323,7 @@ function startMutationObserver() {
 
 export {
   renderFlashMessages,
+  setFlashMessageRenderer,
   appendMessageToStorage,
   clearFlashMessages,
   processMessagePayload,
