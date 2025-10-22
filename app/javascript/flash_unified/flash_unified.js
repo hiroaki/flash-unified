@@ -18,6 +18,7 @@ let customRenderer = null;
  *
  * @param {Function|null} fn - A function that receives an array of message objects: [{type, message}, ...]
  * @returns {void}
+ * @throws {TypeError} If fn is neither a function nor null
  *
  * @example
  * import { setFlashMessageRenderer } from 'flash_unified';
@@ -29,6 +30,9 @@ let customRenderer = null;
  * });
  */
 function setFlashMessageRenderer(fn) {
+  if (fn !== null && typeof fn !== 'function') {
+    throw new TypeError('Renderer must be a function or null');
+  }
   customRenderer = fn;
 }
 
