@@ -10,6 +10,12 @@ class FlashPagesController < ApplicationController
 
   def custom; end
 
+  # Page to verify custom renderer integration
+  def custom_renderer
+    flash.now[:alert]  = 'Custom renderer alert'
+    flash.now[:notice] = 'Custom renderer notice'
+  end
+
   def stream; end
 
   def stream_update
@@ -63,6 +69,8 @@ class FlashPagesController < ApplicationController
       'flash_unified_test_nowarning'
     when 'auto_off'
       'flash_unified_auto_off'
+    when 'custom_renderer'
+      'flash_unified_custom_renderer'
     else
       'flash_unified_test'
     end

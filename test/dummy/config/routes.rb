@@ -15,6 +15,7 @@ Rails.application.routes.draw do
   scope :flash do
     get  'basic',            to: 'flash_pages#basic'
     get  'custom',           to: 'flash_pages#custom'
+    get  'custom_renderer',  to: 'flash_pages#custom_renderer'
     get  'stream',           to: 'flash_pages#stream'
     post 'stream_update',    to: 'flash_pages#stream_update'
     get  'events',           to: 'flash_pages#events'
