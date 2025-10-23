@@ -278,6 +278,62 @@ document.addEventListener('turbo:load', () => {
 });
 ```
 
+### カスタムレンダラー（setFlashMessageRenderer）
+
+既定の `renderFlashMessages()` ではテンプレートを使った DOM を `[data-flash-message-container]` に挿入して表示しますが、この処理を任意のレンダラー関数で置き換えることができます。たとえば Notyf などのサードパーティの通知ライブラリと連携させることができます。
+
+設定する関数の引数には `{ type, message }[]` の配列が渡されます。
+
+関数をセットする代わりに `null` を渡すと既定のレンダラーに戻ります。
+
+- シグネチャ: `setFlashMessageRenderer(fn: (messages: { type: string, message: string }[]) => void | null)`
+- 例外: `fn` が関数でも `null` でもない場合は `TypeError` を投げます。
+
+Notyf を使った例：
+
+```js
+import { setFlashMessageRenderer } from "flash_unified";
+
+setFlashMessageRenderer((messages) => {
+  const notyf = new Notyf();
+  messages.forEach(({ type, message }) => {
+    const level = type === 'info' || type === 'notice' ? 'success' : 'error';
+    notyf.open({ type: level, message });
+  });
+});
+```
+
+`auto.js` を使う場合の重要な注意: 初回描画でカスタムレンダラーを使わせるために、`import "flash_unified/auto"` より先にカスタムレンダラーを登録してください。
+
+Importmap/アセットパイプラインのレイアウト例（順序が重要 — 先に登録、その後 auto を読み込み）：
+
+```erb
+<script type="module">
+  import { setFlashMessageRenderer } from "flash_unified";
+  setFlashMessageRenderer((messages) => {
+    ...
+  });
+</script>
+<script type="module">
+  import "flash_unified/auto";
+</script>
+```
+
+あるいは、auto を無効化して手動で初期化しても構いません：
+
+```erb
+<html data-flash-unified-auto-init="false">
+  ...
+  <script type="module">
+    import { setFlashMessageRenderer, installInitialRenderListener } from "flash_unified";
+    setFlashMessageRenderer((msgs) => { /* custom */ });
+    installInitialRenderListener(); // もしくは適時 renderFlashMessages() を呼ぶ
+  </script>
+</html>
+```
+
+注意: もし初回描画のあとにカスタムレンダラーを登録した場合、その後のレンダリングから反映されます。挙動の混在を避けるため、初回描画前に登録する（または auto を無効にして手動で描画処理を実装する）ことを推奨します。
+
 ### カスタムイベント
 
 カスタムイベントを利用する場合は、初期化時に `installCustomEventListener()` を実行しておきます：

@@ -278,6 +278,61 @@ document.addEventListener('turbo:load', () => {
 });
 ```
 
+### Custom renderer (setFlashMessageRenderer)
+
+By default, `renderFlashMessages()` inserts DOM built from templates into `[data-flash-message-container]`. You can replace this behavior with your own renderer function (for example, to integrate a third-party notifier like Notyf). The function receives an array of `{ type, message }`.
+
+Pass `null` instead of a function to restore the default renderer.
+
+- Signature: `setFlashMessageRenderer(fn: (messages: { type: string, message: string }[]) => void | null)`
+- Throws: `TypeError` if `fn` is neither a function nor `null`.
+
+Example with Notyf:
+
+```js
+import { setFlashMessageRenderer } from "flash_unified";
+
+setFlashMessageRenderer((messages) => {
+  const notyf = new Notyf();
+  messages.forEach(({ type, message }) => {
+    if (!message) return;
+    const level = (type === 'info' || type === 'notice') ? 'success' : 'error';
+    notyf.open({ type: level, message });
+  });
+});
+```
+
+Important when using `auto.js`: register your custom renderer before importing `auto` so the first render uses it.
+
+Importmap/asset pipeline layout example (order matters — renderer first, then auto):
+
+```erb
+<script type="module">
+  import { setFlashMessageRenderer } from "flash_unified";
+  setFlashMessageRenderer((messages) => {
+    ...
+  });
+</script>
+<script type="module">
+  import "flash_unified/auto";
+</script>
+```
+
+Alternatively, you can disable auto and initialize manually after setting the renderer:
+
+```erb
+<html data-flash-unified-auto-init="false">
+  ...
+  <script type="module">
+    import { setFlashMessageRenderer, installInitialRenderListener } from "flash_unified";
+    setFlashMessageRenderer((msgs) => { /* custom */ });
+    installInitialRenderListener(); // or call renderFlashMessages() at your timing
+  </script>
+</html>
+```
+
+Note: If you set a custom renderer after the first render has already run, only subsequent renders will use it. To avoid mixed behavior, prefer registering the renderer before the first render (or disable auto-init and render manually).
+
 ### Custom event
 
 When using custom events, run `installCustomEventListener()` during initialization:
