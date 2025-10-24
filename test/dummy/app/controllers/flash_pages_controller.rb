@@ -61,6 +61,18 @@ class FlashPagesController < ApplicationController
     flash.now[:alert]  = 'Server alert for render_consume'
   end
 
+  # For testing container selection: priority + visible-only + first-only
+  def container_priority
+    flash.now[:notice] = 'Priority notice'
+    flash.now[:alert]  = 'Priority alert'
+  end
+
+  # For testing container selection: primary-only filter
+  def container_primary
+    flash.now[:notice] = 'Primary notice'
+    flash.now[:alert]  = 'Primary alert'
+  end
+
   private
 
   def resolve_layout
@@ -71,6 +83,10 @@ class FlashPagesController < ApplicationController
       'flash_unified_auto_off'
     when 'custom_renderer'
       'flash_unified_custom_renderer'
+    when 'container_priority'
+      'flash_unified_select_priority'
+    when 'container_primary'
+      'flash_unified_select_primary'
     else
       'flash_unified_test'
     end

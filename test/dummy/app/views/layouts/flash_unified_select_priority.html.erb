@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html data-flash-unified-auto-init="false"
+  data-flash-unified-container-first-only="true"
+  data-flash-unified-container-sort-by-priority="true"
+  data-flash-unified-container-visible-only="true">
+  <head>
+    <title>FlashUnified Container Selection (Priority)</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <script type="importmap">
+    {
+      "imports": {
+        "flash_unified": "<%= asset_path('flash_unified/flash_unified.js') %>",
+        "flash_unified/auto": "<%= asset_path('flash_unified/auto.js') %>",
+        "flash_unified/turbo_helpers": "<%= asset_path('flash_unified/turbo_helpers.js') %>",
+        "flash_unified/network_helpers": "<%= asset_path('flash_unified/network_helpers.js') %>"
+      }
+    }
+    </script>
+    <%= stylesheet_link_tag "application" %>
+    <%= javascript_include_tag "turbo", type: "module" %>
+    <script type="module">
+      import { installInitialRenderListener } from "flash_unified";
+      // Render once after DOM ready to ensure all containers are present
+      installInitialRenderListener();
+    </script>
+  </head>
+  <body>
+    <%= flash_global_storage %>
+    <%= flash_templates %>
+    <%= flash_general_error_messages %>
+    <%= yield %>
+    <%= flash_container %>
+  </body>
+</html>

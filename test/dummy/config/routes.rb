@@ -24,6 +24,8 @@ Rails.application.routes.draw do
     get  'events_with_message', to: 'flash_pages#events_with_message'
     get  'clear',            to: 'flash_pages#clear'
     get  'render_consume',   to: 'flash_pages#render_consume'
+    get  'container_priority', to: 'flash_pages#container_priority'
+    get  'container_primary',  to: 'flash_pages#container_primary'
   end
 
   # Defines the root path route ("/")

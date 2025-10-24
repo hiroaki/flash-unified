@@ -20,7 +20,7 @@ FlashUnified は、サーバーサイドとクライアントサイドの両方�
 
 これらの課題を解決するポイントは、JavaScript 側で描画を行う必要があるという点です。そこでサーバー側とクライアント側で役割を分ける二段階の処理を考えました：
 
-1. サーバーでは Flash オブジェクトをページ内に非表示の DOM 要素として埋め込み、ページを render して返します。
+1. サーバーでは Flash オブジェクトをページ内に非表示の DOM 要素として埋め込み、ページを描画して返します。
 2. クライアントの JavaScript はページの変化を検知したとき、その要素を走査し、埋め込まれたメッセージを読み取ってテンプレートで整形し、それを指定されたコンテナ要素に挿入（描画）します。またその際、重複表示を避けるためにメッセージ要素は DOM から取り除きます。
 
 このように仕組みは単純で、その仕組を実装するためには、どのように埋め込みを行うかのルールを決めるだけです。この gem では次のように埋め込みの DOM 構造を定義し、「ストレージ」と呼ぶことにします：
@@ -39,7 +39,7 @@ FlashUnified は、サーバーサイドとクライアントサイドの両方�
 
 そして Flash メッセージを表示する場所である「コンテナ」、および整形のための「テンプレート」はストレージとは関係なく任意の場所に配置します。つまり Turbo Frame であっても、フレームの外側に配置されている Flash 描画領域に対して機能します。
 
-フォームを送信した時にプロキシがエラーを返しくるようなケースをクライアントサイドで処理する場合は、 JavaScript から直接的にエラーメッセージを表示をするのではなく、メッセージをいったんコンテナ要素として埋め込むことによって、同じように（同じテンプレート、同じ処理フローを用いて）Flash を描画することができるようになります。
+フォームを送信した時にプロキシがエラーを返しくるようなケースをクライアントサイドで処理する場合は、 JavaScript から直接エラーメッセージを表示をするのではなく、メッセージをいったんストレージ要素として埋め込むことによって、同じように（同じテンプレート、同じ処理フローを用いて）Flash を描画することができるようになります。
 
 一方で Flash をセットするコントーラでは、通常の Flashメッセージの表示の手続きとなんら変わるところがありません：
 
@@ -68,7 +68,7 @@ end
 - 応用機能のための HTTP ステータス用のローカライズ済みメッセージ
 
 クライアントサイド：
-- `flash_unified.js` に最小限のライブラリ（ES Module）。Importmap やアセットパイプラインから読み込むように設定します。
+- `flash_unified.js` に最小限のライブラリ
 - `auto.js` 自動初期化を行うヘルパー（オプション）
 - `turbo_helpers.js` Turbo 連携のためのヘルパー（オプション）
 - `network_helpers.js` ネットワーク/HTTP エラー表示のためのヘルパー（オプション）
@@ -247,14 +247,18 @@ JavaScript はコア・ライブラリとオプションのヘルパー群に分
 ### コア（`flash_unified`）
 
 - `renderFlashMessages()` — ストレージを走査してコンテナに描画し、ストレージを削除します。
+- `setFlashMessageRenderer(fn | null)` — 既定の DOM 描画処理を任意のレンダラー関数に置き換えます。`null` で既定に戻します。
 - `appendMessageToStorage(message, type = 'notice')` — グローバルなストレージにメッセージを追記します。
 - `clearFlashMessages(message?)` — 描画済み Flash メッセージを全削除、または完全一致のもののみ削除します。
 - `processMessagePayload(payload)` — `{ type, message }[]` または `{ messages: [...] }` を受け取り、追記して描画します。
 - `installCustomEventListener()` — `flash-unified:messages` を購読してペイロード処理します。
+- `installInitialRenderListener()` — 初期表示時（DOM 準備後）に一度だけ `renderFlashMessages()` を呼びます。
 - `storageHasMessages()` — ストレージ内に既存メッセージがあるか判定するユーティリティです。
 - `startMutationObserver()` — （オプション：試験的）ストレージ/テンプレートの挿入を監視して描画します。
- - `consumeFlashMessages(keep = false)` — 現在のページに埋め込まれているすべての `[data-flash-storage]` を走査してメッセージ配列（{ type, message }[]）を返します。デフォルトではストレージ要素を削除する破壊的な動作を行いますが、`keep = true` を渡すとストレージを残したまま取得だけを行います。
-- `aggregateFlashMessages()` — `consumeFlashMessages(true)` の薄いラッパーで、非破壊的にストレージを走査してメッセージ配列を返します。外部のトーストライブラリなどにメッセージを渡して処理する際に便利です。
+- `consumeFlashMessages(keep = false)` — 現在のページに埋め込まれているすべてのストレージを走査してメッセージ配列（{ type, message }[]）を返します。デフォルトではストレージ要素を削除する破壊的な動作を行いますが、`keep = true` を渡すとストレージを残したまま取得だけを行います。
+- `aggregateFlashMessages()` — `consumeFlashMessages(true)` の薄いラッパーで、非破壊的にストレージを走査してメッセージ配列を返します。
+- `getFlashMessageContainers(options = {})` — 描画候補のコンテナ要素を収集します。詳しくは後述する「コンテナ選択」を参照してください。
+- `getHtmlContainerOptions()` — `<html>` の data 属性からコンテナ選別オプション（firstOnly/sortByPriority/visibleOnly/primaryOnly）を読み取ります（既定レンダラーが利用）。
 
 クライアント内で生成した Flash メッセージを任意のタイミングで表示するには、次のようにメッセージの埋め込みを行ってから、描画処理を行うようにします：
 
@@ -265,18 +269,20 @@ appendMessageToStorage("ファイルサイズが大きすぎます。", "notice"
 renderFlashMessages();
 ```
 
-サーバー埋め込みのメッセージをページにレンダリングするのではなく、トースト等の外部ライブラリに渡して表示したい場合、`aggregateFlashMessages()` を使ってストレージを破壊せずにメッセージを取得し、通知ライブラリに渡せます：
+サーバー埋め込みのメッセージをページにレンダリングするのではなく、トースト等の外部ライブラリに渡して表示したい場合、`consumeFlashMessages()` を使ってメッセージを取得し、通知ライブラリに渡せます：
 
 ```js
-import { aggregateFlashMessages } from "flash_unified";
+import { consumeFlashMessages } from "flash_unified";
 
 document.addEventListener('turbo:load', () => {
-  const msgs = aggregateFlashMessages();
+  const msgs = consumeFlashMessages();
   msgs.forEach(({ type, message }) => {
     YourNotifier[type](message); // toastr.info(message) のように
   });
 });
 ```
+
+ただし全体的に一貫して外部ライブラリを使うようなケースでは、イベントハンドラーごとに実装するよりも `setFlashMessageRenderer()` でカスタムレンダラーを登録し、既定の描画処理自体を置き換えた方がよいでしょう。
 
 ### カスタムレンダラー（setFlashMessageRenderer）
 
@@ -334,6 +340,58 @@ Importmap/アセットパイプラインのレイアウト例（順序が重要 
 
 注意: もし初回描画のあとにカスタムレンダラーを登録した場合、その後のレンダリングから反映されます。挙動の混在を避けるため、初回描画前に登録する（または auto を無効にして手動で描画処理を実装する）ことを推奨します。
 
+### コンテナ選択
+
+既定では、テンプレートで整形された Flash メッセージは、複数のコンテナがある場合でもすべてのコンテナ要素（`[data-flash-message-container]`）に挿入されます。特定のコンテナに絞り込む場合には、カスタムレンダラーを作成するか、 HTML の data 属性を設定します。
+
+#### カスタムレンダラーを作成する
+
+カスタムレンダラーを設定する場合はコンテナ規約に従う必要はなく、任意にコンテナ要素を取得し、任意に Flash メッセージを挿入してください。既存の規約に沿ったまま絞り込みたい場合は、任意の補助ユーティリティ `getFlashMessageContainers()` を使って候補を収集・選別することもできます。
+
+`getFlashMessageContainers(options)` の主なオプション：
+- `primaryOnly?: boolean` — `data-flash-primary` を持つ要素のみに絞り込み（"false" は除外）
+- `visibleOnly?: boolean` — 表示中の要素のみに絞り込み（display/visibility/opacity による簡易判定）
+- `sortByPriority?: boolean` — `data-flash-message-container-priority` の数値で昇順ソート（未指定は Infinity 扱い）
+- `firstOnly?: boolean` — フィルタ/ソート後の先頭 1 件のみ返す
+- `filter?: (el) => boolean` — 追加の絞り込み述語を適用
+
+例）優先度が高く、かつ表示中のコンテナ 1 箇所のみに描画：
+
+```js
+import { setFlashMessageRenderer, getFlashMessageContainers } from "flash_unified";
+
+setFlashMessageRenderer((messages) => {
+  const container = getFlashMessageContainers({ sortByPriority: true, visibleOnly: true, firstOnly: true })[0];
+  if (!container) return;
+  messages.forEach(({ type, message }) => {
+    if (!message) return;
+    // 既定テンプレートのノード作成ロジックを流用する/独自で作る等、お好みで実装してください。
+  });
+});
+```
+
+#### HTML の data 属性で既定レンダラーをガイドする
+
+カスタムレンダラーを作成せず、`<html>` 上の data 属性で first-only / priority / visible / primary の選別ルールを指示できます。
+
+コード不要で既定レンダラーの出力先を絞り込む（`<html>` の data 属性）：
+
+```erb
+<html
+  data-flash-unified-container-first-only="true"
+  data-flash-unified-container-sort-by-priority="true"
+  data-flash-unified-container-visible-only="true">
+```
+
+指定できる属性（収集オプションに対応）：
+
+- `data-flash-unified-container-first-only` — 先頭 1 件のみに限定
+- `data-flash-unified-container-sort-by-priority` — `data-flash-message-container-priority` で昇順ソート
+- `data-flash-unified-container-visible-only` — 表示中のコンテナのみ
+- `data-flash-unified-container-primary-only` — `data-flash-primary` を持つ要素に限定
+
+値の解釈：属性の存在（空値含む）/`true`/`1` は true、`false`/`0` は false。未指定は既定値のままです。
+
 ### カスタムイベント
 
 カスタムイベントを利用する場合は、初期化時に `installCustomEventListener()` を実行しておきます：
@@ -366,6 +424,7 @@ Turbo を使用してページの部分更新を行っている場合には、�
 
 - `installTurboRenderListeners()` — Turbo のライフサイクルに合わせて描画するためのイベントを登録します。
 - `installTurboIntegration()` — `auto.js` から利用される想定で `installTurboRenderListeners()` と `installCustomEventListener()` をまとめたものです。
+- `installNetworkErrorListeners()` — Turbo のフォーム送信エラー/ネットワークエラーを検知して、適切なエラーメッセージを追加・描画するリスナー群を有効化します。
 
 ```js
 import { installTurboRenderListeners } from "flash_unified/turbo_helpers";
