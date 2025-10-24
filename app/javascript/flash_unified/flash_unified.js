@@ -46,7 +46,7 @@ function setFlashMessageRenderer(fn) {
 function isVisible(el) {
   if (!el || !el.isConnected) return false;
   const style = window.getComputedStyle(el);
-  return style && style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+  return style && style.display !== 'none' && style.visibility !== 'hidden' && parseFloat(style.opacity) > 0;
 }
 
 /**
