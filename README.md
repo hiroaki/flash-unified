@@ -353,9 +353,8 @@ Example: render only into the highest-priority visible container (does nothing i
 import { setFlashMessageRenderer, getFlashMessageContainers } from "flash_unified";
 
 setFlashMessageRenderer((messages) => {
-  // Choose at most one target (visible + highest priority); if none, nothing happens
-  const target = getFlashMessageContainers({ sortByPriority: true, visibleOnly: true, firstOnly: true })[0];
-  if (!target) return;
+  const container = getFlashMessageContainers({ sortByPriority: true, visibleOnly: true, firstOnly: true })[0];
+  if (!container) return;
   messages.forEach(({ type, message }) => {
     if (!message) return;
     // Use your own node creation, or replicate the default template-based node creation.
