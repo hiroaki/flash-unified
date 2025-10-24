@@ -8,7 +8,7 @@ This document summarizes the current state of test structure, CI, and helper scr
 
 The Ruby and Rails versions currently tested are:
 - Ruby: 3.2, 3.3
-- Rails: 7.1.5.2, 7.2.2.2, 8.0.3
+- Rails: 7.1.5.2, 7.2.2.2, 8.0.3, 8.1.0
 
 ### Testing & Tooling
 
