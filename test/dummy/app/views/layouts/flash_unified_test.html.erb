@@ -18,15 +18,8 @@
     <%= stylesheet_link_tag "application" %>
     <%= javascript_include_tag "turbo", type: "module" %>
     <script type="module">
-      // Use auto entry + an extra render after init for test expectations
+      // Use auto entry; rely on its initial render timing
       import "flash_unified/auto";
-      import { renderFlashMessages } from "flash_unified";
-      const init = () => { Promise.resolve().then(() => renderFlashMessages()); };
-      if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", init);
-      } else {
-        init();
-      }
     </script>
   </head>
   <body>
