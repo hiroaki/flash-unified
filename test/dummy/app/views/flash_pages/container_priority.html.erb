@@ -1,0 +1,10 @@
+<%# Containers for priority + visibleOnly + firstOnly selection testing:
+    cont1: highest priority (1) but invisible (opacity: 0) - should be excluded by visibleOnly
+    cont2: priority 2, visible
+    cont3: priority 3, visible %>
+<div id="cont1" data-flash-message-container data-flash-message-container-priority="1" style="opacity: 0"></div>
+<div id="cont2" data-flash-message-container data-flash-message-container-priority="2"></div>
+<div id="cont3" data-flash-message-container data-flash-message-container-priority="3"></div>
+
+<%# Include server-embedded storage so messages can be rendered %>
+<%= flash_storage %>
