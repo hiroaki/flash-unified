@@ -39,9 +39,7 @@ Because storage is a hidden element, it can be placed anywhere in the rendered p
 
 The "container" (where Flash messages are displayed) and the "templates" used for formatting are independent of the storage location and can be placed anywhere. This means that even when storage is inside a Turbo Frame, the rendering can target a Flash display area outside the frame.
 
-For client-side handling of cases like proxy errors on form submission, instead of rendering an error message directly from JavaScript, embed the message into a container element first and let the same templates and processing flow render the Flash message.
-
-### Controller example
+For client-side handling of cases like proxy errors on form submission, instead of rendering an error message directly from JavaScript, embed the message into a storage element first and let the same templates and processing flow render the Flash message.
 
 Controller-side procedures for setting Flash are unchanged:
 
@@ -70,7 +68,7 @@ Server-side:
 - Localized messages for HTTP status (for advanced usage)
 
 Client-side:
-- A minimal library in `flash_unified.js` (ES Module). Configure via Importmap or the asset pipeline.
+- A minimal library in `flash_unified.js`.
 - `auto.js` for automatic initialization (optional)
 - `turbo_helpers.js` for Turbo integration (optional)
 - `network_helpers.js` for network/HTTP error display (optional)
@@ -247,14 +245,18 @@ The JavaScript is split into a core library and optional helpers. Use only what 
 ### Core (`flash_unified`)
 
 - `renderFlashMessages()` — scan storages, render to containers, and remove storages.
+- `setFlashMessageRenderer(fn | null)` — replace the default DOM-based renderer with your own; pass `null` to restore default.
 - `appendMessageToStorage(message, type = 'notice')` — append to the global storage.
 - `clearFlashMessages(message?)` — remove rendered messages (all or exact-match only).
 - `processMessagePayload(payload)` — accept `{ type, message }[]` or `{ messages: [...] }`.
 - `installCustomEventListener()` — subscribe to `flash-unified:messages` and process payloads.
+- `installInitialRenderListener()` — call `renderFlashMessages()` once after DOM is ready.
 - `storageHasMessages()` — utility to detect existing messages in storage.
 - `startMutationObserver()` — (optional / experimental) monitor insertion of storages/templates and render them.
  - `consumeFlashMessages(keep = false)` — scan all `[data-flash-storage]` elements on the current page and return an array of messages ({ type, message }[]). By default this operation is destructive and removes the storage elements; pass `keep = true` to read without removing.
 - `aggregateFlashMessages()` — a thin wrapper over `consumeFlashMessages(true)` that returns the aggregated messages without removing storage elements. Useful for forwarding messages to external notifier libraries.
+- `getFlashMessageContainers(options = {})` — collect candidate container elements (defaults to all `[data-flash-message-container]`). See “Container selection (client-only)” for options and usage.
+- `getHtmlContainerOptions()` — read `<html>` data attributes to guide container selection (firstOnly/sortByPriority/visibleOnly/primaryOnly) used by the default renderer.
 
 To display client-generated Flash messages at arbitrary timing, embed the message first and then perform rendering:
 
@@ -265,13 +267,13 @@ appendMessageToStorage("File size too large.", "notice");
 renderFlashMessages();
 ```
 
-To pass server-embedded messages to external libraries like toast instead of rendering them in the page, use `aggregateFlashMessages()` to get messages without destroying storage and pass them to your notification library:
+To pass server-embedded messages to external libraries like toast instead of rendering them in the page, use `consumeFlashMessages()` to get messages and pass them to your notification library:
 
 ```js
-import { aggregateFlashMessages } from "flash_unified";
+import { consumeFlashMessages } from "flash_unified";
 
 document.addEventListener('turbo:load', () => {
-  const msgs = aggregateFlashMessages();
+  const msgs = consumeFlashMessages();
   msgs.forEach(({ type, message }) => {
     YourNotifier[type](message); // like toastr.info(message)
   });
@@ -295,8 +297,7 @@ import { setFlashMessageRenderer } from "flash_unified";
 setFlashMessageRenderer((messages) => {
   const notyf = new Notyf();
   messages.forEach(({ type, message }) => {
-    if (!message) return;
-    const level = (type === 'info' || type === 'notice') ? 'success' : 'error';
+    const level = type === 'info' || type === 'notice' ? 'success' : 'error';
     notyf.open({ type: level, message });
   });
 });
@@ -333,6 +334,53 @@ Alternatively, you can disable auto and initialize manually after setting the re
 
 Note: If you set a custom renderer after the first render has already run, only subsequent renders will use it. To avoid mixed behavior, prefer registering the renderer before the first render (or disable auto-init and render manually).
 
+### Container selection (client-only)
+
+You can choose where messages are rendered without changing the server. By default, the default renderer renders into all `[data-flash-message-container]`, so you don't need to implement any selection logic unless you want custom routing. When needed, use `getFlashMessageContainers()` to collect candidates and apply your own logic. If you don't want a custom renderer, you can still guide the default renderer via `<html>` data attributes (see below).
+
+Note: A custom renderer is free to ignore the container convention and render anywhere (e.g., a toast library). `getFlashMessageContainers()` is just a convenience when you want to keep using the gem’s container convention and filter within it; it’s optional for custom renderers.
+
+Options for `getFlashMessageContainers(options)`:
+- `primaryOnly?: boolean` — include only elements with `data-flash-primary` present (and not "false").
+- `visibleOnly?: boolean` — include only elements considered visible (basic heuristic: display/visibility/opacity).
+- `sortByPriority?: boolean` — sort ascending by numeric `data-flash-message-container-priority` (missing treated as Infinity).
+- `firstOnly?: boolean` — return at most one element after filtering/sorting.
+- `filter?: (el) => boolean` — extra predicate to filter elements.
+
+Example: render only into the highest-priority visible container (does nothing if none found).
+
+```js
+import { setFlashMessageRenderer, getFlashMessageContainers } from "flash_unified";
+
+setFlashMessageRenderer((messages) => {
+  // Choose at most one target (visible + highest priority); if none, nothing happens
+  const target = getFlashMessageContainers({ sortByPriority: true, visibleOnly: true, firstOnly: true })[0];
+  if (!target) return;
+  messages.forEach(({ type, message }) => {
+    if (!message) return;
+    // Use your own node creation, or replicate the default template-based node creation.
+  });
+});
+```
+
+Guide the default renderer without code using `<html>` data attributes:
+
+```erb
+<html
+  data-flash-unified-container-first-only="true"
+  data-flash-unified-container-sort-by-priority="true"
+  data-flash-unified-container-visible-only="true">
+```
+
+These toggle the same options the collector understands:
+
+- `data-flash-unified-container-first-only`: at most one target
+- `data-flash-unified-container-sort-by-priority`: sort ascending by `data-flash-message-container-priority`
+- `data-flash-unified-container-visible-only`: visible containers only
+- `data-flash-unified-container-primary-only`: require `data-flash-primary`
+
+Values accepted: presence (no value), `true`, or `1` → true; `false` or `0` → false.
+
 ### Custom event
 
 When using custom events, run `installCustomEventListener()` during initialization:
@@ -365,6 +413,7 @@ When using Turbo for partial page updates, you need to perform rendering process
 
 - `installTurboRenderListeners()` — register events for rendering according to Turbo lifecycle.
 - `installTurboIntegration()` — intended for use by `auto.js`, combines `installTurboRenderListeners()` and `installCustomEventListener()`.
+- `installNetworkErrorListeners()` — enable listeners that detect Turbo form submission/network errors, append the appropriate error message, and trigger rendering.
 
 ```js
 import { installTurboRenderListeners } from "flash_unified/turbo_helpers";
