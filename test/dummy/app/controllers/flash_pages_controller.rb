@@ -67,6 +67,12 @@ class FlashPagesController < ApplicationController
     flash.now[:alert]  = 'Server alert for render_consume_fixed'
   end
 
+  # Render a page that relies on the new wrapper helper placed in the layout
+  def render_consume_wrapper
+    flash.now[:notice] = 'Server notice for render_consume_wrapper'
+    flash.now[:alert]  = 'Server alert for render_consume_wrapper'
+  end
+
   # Target used by Turbo Frame tests. Render without the outer layout so the frame
   # content can include a page-local storage partial.
   def frame_target
@@ -102,6 +108,8 @@ class FlashPagesController < ApplicationController
       'flash_unified_select_primary'
     when 'render_consume_fixed'
       'flash_unified_test_fixed'
+    when 'render_consume_wrapper'
+      'flash_unified_test_wrapper'
     else
       'flash_unified_test'
     end

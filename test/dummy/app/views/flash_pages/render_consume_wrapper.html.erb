@@ -1,0 +1,23 @@
+<h1>Flash Render / Consume Test (wrapper layout)</h1>
+
+<p>This page relies on the layout to include the wrapper helper that emits
+   all necessary storages/templates/containers.</p>
+
+<!-- Buttons and test hooks mirror other render_consume pages -->
+<button id="btn-render">Render messages</button>
+<button id="btn-consume">Consume messages (remove)</button>
+<button id="btn-consume-keep">Consume messages (keep)</button>
+
+<button id="add-hello" data-message="Hello" data-type="notice">Add Hello</button>
+<textarea id="__lastConsumed" style="display:none"></textarea>
+
+<script type="module">
+  import { renderFlashMessages, consumeFlashMessages, appendMessageToStorage } from "<%= asset_path('flash_unified/flash_unified.js') %>";
+
+  document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('btn-render').addEventListener('click', function() { renderFlashMessages(); });
+    document.getElementById('btn-consume').addEventListener('click', function() { const res = consumeFlashMessages(false); const t = document.getElementById('__lastConsumed'); if (t) t.value = JSON.stringify(res); });
+    document.getElementById('btn-consume-keep').addEventListener('click', function() { const res = consumeFlashMessages(true); const t = document.getElementById('__lastConsumed'); if (t) t.value = JSON.stringify(res); });
+    document.getElementById('add-hello').addEventListener('click', function() { appendMessageToStorage('Hello', 'notice'); });
+  });
+</script>
