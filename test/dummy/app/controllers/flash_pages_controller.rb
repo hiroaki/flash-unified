@@ -61,6 +61,19 @@ class FlashPagesController < ApplicationController
     flash.now[:alert]  = 'Server alert for render_consume'
   end
 
+  # Same as render_consume but uses a layout that has the storage fixed under <body>
+  def render_consume_fixed
+    flash.now[:notice] = 'Server notice for render_consume_fixed'
+    flash.now[:alert]  = 'Server alert for render_consume_fixed'
+  end
+
+  # Target used by Turbo Frame tests. Render without the outer layout so the frame
+  # content can include a page-local storage partial.
+  def frame_target
+    flash.now[:notice] = 'Frame notice'
+    render layout: false
+  end
+
   # For testing container selection: priority + visible-only + first-only
   def container_priority
     flash.now[:notice] = 'Priority notice'
@@ -87,6 +100,8 @@ class FlashPagesController < ApplicationController
       'flash_unified_select_priority'
     when 'container_primary'
       'flash_unified_select_primary'
+    when 'render_consume_fixed'
+      'flash_unified_test_fixed'
     else
       'flash_unified_test'
     end

@@ -1,0 +1,72 @@
+<h1>Flash Render / Consume Test (fixed layout)</h1>
+
+<p>This page is used by system tests to exercise render/consume flows when the storage is provided by the layout (not the page).</p>
+
+<!-- NOTE: intentionally do NOT call flash_storage here; the layout provides it -->
+<!-- Navigation test: Turbo Drive link to a separate page that contains server-embedded flashes -->
+<p>
+  <a id="link-to-basic" href="/flash/basic">Go to basic (Turbo Drive)</a>
+</p>
+
+<!-- Turbo Frame test: frame contains a link which loads frame content that includes a storage -->
+<turbo-frame id="test-frame">
+  <a id="frame-link" href="/flash/frame_target" data-turbo-frame="test-frame">Load frame (frame-target)</a>
+</turbo-frame>
+
+<!-- Stream test: submit a Turbo form to stream_update so Turbo will apply the turbo-stream
+     response on the client automatically -->
+<form action="/flash/stream_update" method="post" data-turbo="true">
+  <button id="btn-stream" type="submit">Trigger turbo-stream append</button>
+</form>
+
+<button id="btn-render">Render messages</button>
+<button id="btn-consume">Consume messages (remove)</button>
+<button id="btn-consume-keep">Consume messages (keep)</button>
+
+<!-- Test-only fixed message buttons (call appendMessageToStorage directly) -->
+<button id="add-hello" data-message="Hello" data-type="notice">Add Hello</button>
+<button id="add-oops" data-message="Oops" data-type="alert">Add Oops</button>
+<button id="add-keep-me" data-message="Keep me" data-type="notice">Add Keep me</button>
+
+<!-- Hidden storage for test-consumed JSON. Tests should read and JSON.parse this value. -->
+<textarea id="__lastConsumed" style="display:none"></textarea>
+
+<script type="module">
+  import { renderFlashMessages, consumeFlashMessages, appendMessageToStorage } from "<%= asset_path('flash_unified/flash_unified.js') %>";
+
+  document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('btn-render').addEventListener('click', function() {
+      renderFlashMessages();
+    });
+
+    document.getElementById('btn-consume').addEventListener('click', function() {
+      // consume (destructive)
+      const res = consumeFlashMessages(false);
+      // store JSON in a hidden textarea for tests to read (avoids polluting window)
+      const t = document.getElementById('__lastConsumed');
+      if (t) t.value = JSON.stringify(res);
+    });
+
+    document.getElementById('btn-consume-keep').addEventListener('click', function() {
+      // consume but keep storages
+      const res = consumeFlashMessages(true);
+      const t = document.getElementById('__lastConsumed');
+      if (t) t.value = JSON.stringify(res);
+    });
+
+    document.getElementById('add-hello').addEventListener('click', function() {
+      appendMessageToStorage('Hello', 'notice');
+    });
+
+    document.getElementById('add-oops').addEventListener('click', function() {
+      appendMessageToStorage('Oops', 'alert');
+    });
+
+    document.getElementById('add-keep-me').addEventListener('click', function() {
+      appendMessageToStorage('Keep me', 'notice');
+    });
+
+    // The stream trigger is a normal form submit; Turbo will apply the returned
+    // turbo-stream and the turbo_helpers integration will call renderFlashMessages().
+  });
+</script>
