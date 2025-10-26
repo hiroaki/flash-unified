@@ -24,6 +24,9 @@ Rails.application.routes.draw do
     get  'events_with_message', to: 'flash_pages#events_with_message'
     get  'clear',            to: 'flash_pages#clear'
     get  'render_consume',   to: 'flash_pages#render_consume'
+    get  'render_consume_fixed', to: 'flash_pages#render_consume_fixed'
+    get  'frame_target',      to: 'flash_pages#frame_target'
+    get  'render_consume_wrapper', to: 'flash_pages#render_consume_wrapper'
     get  'container_priority', to: 'flash_pages#container_priority'
     get  'container_primary',  to: 'flash_pages#container_primary'
   end
