@@ -182,7 +182,7 @@ renderFlashMessages();
 
 ### 1. Placing message sources
 
-Place elements that serve as sources for assembling Flash message elements by JavaScript in a global position. Since these are hidden elements, they can be placed anywhere, but placing them right after `<body>` is sufficient:
+Place elements that serve as sources for JavaScript to assemble Flash message elements in a global position. Since these are hidden elements, they can be placed anywhere, but placing them right after `<body>` is sufficient:
 ```erb
 <body>
   <%= flash_unified_sources %>
@@ -200,7 +200,7 @@ And place the container where you want to display Flash messages:
   <%= flash_container %>
 ```
 
-Multiple containers can be placed, but by default the same messages are inserted into all containers. If you want to control this, see "Container selection" described later.
+Multiple containers can be placed, but by default the same messages are inserted into all containers. If you want to control this, see the "Container selection" section described later.
 
 #### Helper list (reference)
 
