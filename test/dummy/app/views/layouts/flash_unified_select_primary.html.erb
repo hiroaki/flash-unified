@@ -5,27 +5,23 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
+    <link rel="modulepreload" href="<%= asset_path('flash_unified/all.bundle.js') %>">
     <script type="importmap">
     {
       "imports": {
-        "flash_unified": "<%= asset_path('flash_unified/flash_unified.js') %>",
-        "flash_unified/auto": "<%= asset_path('flash_unified/auto.js') %>",
-        "flash_unified/turbo_helpers": "<%= asset_path('flash_unified/turbo_helpers.js') %>",
-        "flash_unified/network_helpers": "<%= asset_path('flash_unified/network_helpers.js') %>"
+        "flash_unified/all": "<%= asset_path('flash_unified/all.bundle.js') %>"
       }
     }
     </script>
     <%= stylesheet_link_tag "application" %>
     <%= javascript_include_tag "turbo", type: "module" %>
     <script type="module">
-      import { installInitialRenderListener } from "flash_unified";
+      import { installInitialRenderListener } from "flash_unified/all";
       installInitialRenderListener();
     </script>
   </head>
   <body>
-    <%= flash_global_storage %>
-    <%= flash_templates %>
-    <%= flash_general_error_messages %>
+    <%= flash_unified_sources(storage: false) %>
     <%= yield %>
     <%= flash_container %>
   </body>
