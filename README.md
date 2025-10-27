@@ -98,55 +98,59 @@ This gem provides JavaScript, templates and translation files from within the en
 
 ### 2. Installing the JavaScript library
 
-**For Importmap**
+**For Importmap (Quick start)**
 
-Pin the JavaScript you want to use in `config/importmap.rb`:
+Pin the bundled entry in `config/importmap.rb`:
+
+```ruby
+pin "flash_unified/all", to: "flash_unified/all.bundle.js"
+```
+
+Then import it once from your JavaScript entry point (for example `app/javascript/application.js`):
+
+```js
+import "flash_unified/all";
+```
+
+This single import installs the default Turbo wiring and renders embedded messages automatically. Control the behavior via `<html>` attributes when needed:
+
+- `data-flash-unified-auto-init="false"` disables the automatic wiring.
+- `data-flash-unified-enable-network-errors="true"` enables network error listeners.
+
+**Advanced (Importmap)**
+
+If you need more granular control (for example customizing build pipelines or opting out of auto initialization), you can still pin individual modules:
 
 ```ruby
 pin "flash_unified", to: "flash_unified/flash_unified.js"
-pin "flash_unified/network_helpers", to: "flash_unified/network_helpers.js"
-pin "flash_unified/turbo_helpers", to: "flash_unified/turbo_helpers.js"
 pin "flash_unified/auto", to: "flash_unified/auto.js"
+pin "flash_unified/turbo_helpers", to: "flash_unified/turbo_helpers.js"
+pin "flash_unified/network_helpers", to: "flash_unified/network_helpers.js"
 ```
 
-If you want to automatically set the rendering timing, use `auto.js`. `auto.js` automatically registers Turbo integration events and custom events, and handles processing during initial page rendering.
-
-If you want to control (implement) such events yourself, implement rendering processing on your own using the core library `flash_unified.js`. In that case `auto.js` is not needed. Also, the helpers `turbo_helpers.js` and `network_helpers.js` are optional, so only pin what you use.
+Import whichever modules you need. The API surface remains unchanged.
 
 **For asset pipeline (Propshaft / Sprockets)**
 
 ```erb
-<link rel="modulepreload" href="<%= asset_path('flash_unified/flash_unified.js') %>">
-<link rel="modulepreload" href="<%= asset_path('flash_unified/network_helpers.js') %>">
-<link rel="modulepreload" href="<%= asset_path('flash_unified/turbo_helpers.js') %>">
-<link rel="modulepreload" href="<%= asset_path('flash_unified/auto.js') %>">
+<link rel="modulepreload" href="<%= asset_path('flash_unified/all.bundle.js') %>">
 <script type="importmap">
   {
     "imports": {
-      "flash_unified": "<%= asset_path('flash_unified/flash_unified.js') %>",
-      "flash_unified/auto": "<%= asset_path('flash_unified/auto.js') %>",
-      "flash_unified/turbo_helpers": "<%= asset_path('flash_unified/turbo_helpers.js') %>",
-      "flash_unified/network_helpers": "<%= asset_path('flash_unified/network_helpers.js') %>"
+      "flash_unified/all": "<%= asset_path('flash_unified/all.bundle.js') %>"
     }
   }
 </script>
 <script type="module">
-  import "flash_unified/auto";
+  import "flash_unified/all";
 </script>
 ```
 
+If you need direct access to individual modules, add them to the inline import map similarly.
+
 ### 3. JavaScript initialization processing
 
-When using helpers, execute initialization processing to register events when the page loads.
-
-**Automatic initialization (for simple implementations)**
-
-When using `auto.js`, load `auto` at the JavaScript entry point (e.g. `app/javascript/application.js`):
-```js
-import "flash_unified/auto";
-```
-
-Initialization processing is executed at the same time as loading. The behavior at that time can be switched with data attributes on the `<html>` element. Details are described later.
+When using the bundled entry (`flash_unified/all`), initialization is automatic. If you import individual modules instead, follow the guidance below.
 
 **Semi-automatic control (Turbo events are set automatically)**
 

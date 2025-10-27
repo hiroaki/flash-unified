@@ -98,55 +98,59 @@ bundle install
 
 ### 2. JavaScript ライブラリの設置
 
-**Importmap の場合**
+**Importmap の場合（クイックスタート）**
 
-`config/importmap.rb` に、使用する JavaScript を pin してください：
+`config/importmap.rb` に、バンドル済みエントリを 1 行追加します：
+
+```ruby
+pin "flash_unified/all", to: "flash_unified/all.bundle.js"
+```
+
+JavaScript エントリポイント（例: `app/javascript/application.js`）で 1 行読み込みます：
+
+```js
+import "flash_unified/all";
+```
+
+この import だけで既定の Turbo 連携と初期描画が自動で有効になります。挙動は `<html>` の data 属性で制御できます：
+
+- `data-flash-unified-auto-init="false"` で自動初期化を無効化
+- `data-flash-unified-enable-network-errors="true"` でネットワークエラー補助を有効化
+
+**高度な利用（Importmap）**
+
+より細かく制御したい場合は従来どおり個別モジュールを pin できます：
 
 ```ruby
 pin "flash_unified", to: "flash_unified/flash_unified.js"
-pin "flash_unified/network_helpers", to: "flash_unified/network_helpers.js"
-pin "flash_unified/turbo_helpers", to: "flash_unified/turbo_helpers.js"
 pin "flash_unified/auto", to: "flash_unified/auto.js"
+pin "flash_unified/turbo_helpers", to: "flash_unified/turbo_helpers.js"
+pin "flash_unified/network_helpers", to: "flash_unified/network_helpers.js"
 ```
 
-描画のタイミングを自動で設定する場合は `auto.js` を使います。`auto.js` は Turbo 連携のイベントの登録およびカスタムイベントの登録、そしてページの初回描画時の処理を自動で行います。
-
-そうしたイベントを自身で制御（実装）することがある場合は、コア・ライブラリである `flash_unified.js` を使って描画処理を独自に実装してください。その場合 `auto.js` は不要です。またヘルパー `turbo_helpers.js` と `network_helpers.js` はオプションですので、利用するものだけ pin してください。
+必要なモジュールだけ import してください。API は従来と同じです。
 
 **アセットパイプライン（Propshaft / Sprockets） の場合**
 
 ```erb
-<link rel="modulepreload" href="<%= asset_path('flash_unified/flash_unified.js') %>">
-<link rel="modulepreload" href="<%= asset_path('flash_unified/network_helpers.js') %>">
-<link rel="modulepreload" href="<%= asset_path('flash_unified/turbo_helpers.js') %>">
-<link rel="modulepreload" href="<%= asset_path('flash_unified/auto.js') %>">
+<link rel="modulepreload" href="<%= asset_path('flash_unified/all.bundle.js') %>">
 <script type="importmap">
   {
     "imports": {
-      "flash_unified": "<%= asset_path('flash_unified/flash_unified.js') %>",
-      "flash_unified/auto": "<%= asset_path('flash_unified/auto.js') %>",
-      "flash_unified/turbo_helpers": "<%= asset_path('flash_unified/turbo_helpers.js') %>",
-      "flash_unified/network_helpers": "<%= asset_path('flash_unified/network_helpers.js') %>"
+      "flash_unified/all": "<%= asset_path('flash_unified/all.bundle.js') %>"
     }
   }
 </script>
 <script type="module">
-  import "flash_unified/auto";
+  import "flash_unified/all";
 </script>
 ```
 
+個別モジュールへ直接アクセスしたい場合は、同様に import map に追記してください。
+
 ### 3. JavaScript 初期化処理
 
-ヘルパーを利用する場合は、ページのロードの際にイベントを登録するための初期化処理を実行してください。
-
-**自動初期化（簡易な実装のケース）**
-
-`auto.js` を利用する場合、 JavaScript エントリポイント（例: `app/javascript/application.js`）で `auto` 読み込みます：
-```js
-import "flash_unified/auto";
-```
-
-読み込みと同時に、初期化処理も実行されます。そのときの動作は `<html>` の data 属性で切り替えできます。具体的には後述します。
+`flash_unified/all` を読み込んでいる場合、初期化は自動的に行われます。個別モジュールを利用する構成では以下を参考にしてください。
 
 **半自動制御（Turbo イベントに関しては自動で設定）**
 
