@@ -45,11 +45,8 @@ module Dummy
     # information; explicitly setting `config.active_support.to_time_preserves_timezone = :zone`
     # opts into the new behavior when supported. Only set this on Rails < 8.1
     # to avoid a deprecation in 8.1+ and a missing method on much older versions.
-    # Apply this setting only for Rails releases older than 8.1 final.
-    # Explicitly use "8.1.0" so 8.1.x releases are treated as 8.1, and exclude
-    # prerelease strings (e.g. "8.1.0.beta", "8.1.0.rc") so those are treated
-    # as 8.1 candidates and won't get the legacy setting.
-    if Gem::Version.new(Rails.version) < Gem::Version.new("8.1.0") && !Rails.version.match?(/[A-Za-z]/)
+    # Apply this setting only for Rails versions older than 8.1.0. Note that prerelease versions (e.g., 8.1.0.beta) are naturally excluded by Gem::Version comparison.
+    if Gem::Version.new(Rails.version) < Gem::Version.new("8.1.0")
       begin
         config.active_support.to_time_preserves_timezone = :zone
       rescue NoMethodError
