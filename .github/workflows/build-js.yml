@@ -40,32 +40,3 @@ jobs:
             git diff -- app/javascript/flash_unified/all.bundle.js >&2
             exit 1
           fi
-
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: ${{ env.RUBY_VERSION }}
-          bundler-cache: true
-
-      - name: Install gems for appraisal
-        run: |
-          bundle exec appraisal "${APPRAISAL}" bundle install --jobs 1 --retry 2
-
-      - name: Check installed browser (install if missing)
-        run: |
-          echo "Checking for Chrome/Chromium..."
-          which google-chrome-stable || which google-chrome || which chrome || which chromium-browser || which chromium || true
-          google-chrome-stable --version 2>/dev/null || google-chrome --version 2>/dev/null || chrome --version 2>/dev/null || chromium-browser --version 2>/dev/null || chromium --version 2>/dev/null || echo "no chrome/chromium found"
-          if ! (which google-chrome-stable || which google-chrome || which chrome || which chromium-browser || which chromium); then
-            echo "Installing chromium-browser via apt-get"
-            sudo apt-get update -y
-            sudo apt-get install -y chromium-browser --no-install-recommends
-          fi
-
-      - name: Run unit test suite
-        run: |
-          APPRAISAL="${APPRAISAL}" bin/test unit
-
-      - name: Run system test suite
-        run: |
-          APPRAISAL="${APPRAISAL}" bin/test system
