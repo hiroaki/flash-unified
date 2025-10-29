@@ -128,6 +128,44 @@ bin/sandbox sprockets --scaffold --path ../..
 
 Follow the instructions after generation to start the server with `bin/rails server`.
 
+## 6. JavaScript Bundle & Build Workflow
+
+### Background
+- The introduction of `all.bundle.js` lets Importmap users adopt FlashUnified with a single `pin` and `import`.
+- The gem ships the pre-built `app/javascript/flash_unified/all.bundle.js` while still exposing individual modules for advanced use and backwards compatibility.
+
+### Structure Overview
+- Aggregated entry: `app/javascript/flash_unified/all.entry.js`
+	- Imports core, Turbo helpers, and network helpers (including side-effect auto-init).
+- Build script: `scripts/build-all-bundle.mjs`
+	- Invokes esbuild via Node’s API and resolves bare imports (`flash_unified/...`) to local files with a custom alias plugin.
+	- Produces a minified ESM bundle (`all.bundle.js`). The process is idempotent—safe to run any time.
+- npm script: `npm run build:bundle`
+	- Wrapper around the build script; used locally and in CI.
+
+### Development Workflow
+1. Install Node dependencies
+	 - Run `npm ci` (or `npm install`) once to set up dev dependencies.
+2. Rebuild the bundle whenever JS sources change
+	 ```bash
+	 npm run build:bundle
+	 ```
+	 - Successful runs print `[flash-unified] Built app/javascript/flash_unified/all.bundle.js`.
+	 - Commit the generated bundle if it changes—CI will flag stale outputs.
+3. Run tests
+	 - At minimum, run `bin/test unit` and `bin/test system rails-7.2` (extend to other Appraisals as needed).
+
+### Release & Maintenance Notes
+- Before publishing the gem, run `npm run build:bundle` and commit the refreshed `all.bundle.js`.
+- If you bump esbuild or Node.js versions, re-run the build and full test suite to confirm compatibility.
+- README, generators, and Quickstart instructions assume `flash_unified/all.bundle.js`. Update the docs if the bundle contract changes.
+- If you experiment with variants (e.g., removing network helpers), adjust `all.entry.js` and the alias plugin accordingly.
+
+### CI Integration
+- `.github/workflows/build-js.yml` runs `npm run build:bundle` and verifies that `app/javascript/flash_unified/all.bundle.js` has no unstaged diff.
+- When differences exist, the workflow fails and instructs you to rebuild locally and commit.
+- CI currently tests Rails 8.0 on Ruby 3.3; you can mirror this locally using `APPRAISAL=rails-8.0 bin/test ...`.
+
 ## A. Contributing
 
 Bugs, feature requests, and pull requests are welcome. Please:

@@ -27,6 +27,7 @@ module FlashUnified
           flash_unified/auto.js
           flash_unified/turbo_helpers.js
           flash_unified/network_helpers.js
+          flash_unified/all.bundle.js
         ]
       else
         # Fallback: still add to assets paths if available

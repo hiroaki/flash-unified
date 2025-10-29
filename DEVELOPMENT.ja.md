@@ -127,6 +127,44 @@ bin/sandbox sprockets --scaffold --path ../..
 
 生成後の案内に従って `bin/rails server` で起動してください。
 
+## 6. JavaScript バンドルとビルドワークフロー
+
+### 背景
+- all.bundle.js の導入により、Importmap 利用者は `pin` 1行 + `import` 1行で FlashUnified を使えるようになりました。
+- gem には事前ビルド済みの `app/javascript/flash_unified/all.bundle.js` を同梱し、後方互換のため従来の個別モジュールも引き続き配布しています。
+
+### 構成概要
+- 集約エントリ: `app/javascript/flash_unified/all.entry.js`
+	- core / turbo / network helpers を取り込み、副作用 import もここで行います。
+- ビルドスクリプト: `scripts/build-all-bundle.mjs`
+	- esbuild を Node API から呼び出し、bare import (`flash_unified/...`) を実ファイルに解決する独自プラグインを含みます。
+	- Minify 済みの ESM (`all.bundle.js`) を出力します。処理は冪等で、何度実行しても安全に再生成できます。
+- npm スクリプト: `npm run build:bundle`
+	- 上記スクリプトをラップしたコマンドです。CI でもこのコマンドを使用します。
+
+### 開発時フロー
+1. Node 依存のセットアップ
+	 - 初回のみ `npm ci`（または `npm install`）で依存を整えます。
+2. JavaScript を変更したら必ずバンドルを再生成
+	 ```bash
+	 npm run build:bundle
+	 ```
+	 - 成功すると `[flash-unified] Built app/javascript/flash_unified/all.bundle.js` が表示されます。
+	 - 生成物に差分が出た場合はコミットしてください（CI でも差分チェックが走ります）。
+3. テスト実行
+	 - 少なくとも `bin/test unit` と `bin/test system rails-7.2`（必要に応じて他 Appraisal）でグリーンを確認します。
+
+### リリース/メンテナンス時の注意
+- gem 公開前は `npm run build:bundle` を実行し、`all.bundle.js` を最新化した上でコミットすること。
+- esbuild や Node.js のバージョンを更新した場合は、生成結果とテスト一式を再確認してください。
+- Importmap の Quickstart、ジェネレータ出力、README は `flash_unified/all.bundle.js` を前提としています。仕様変更時はこれらのドキュメントも合わせて更新してください。
+- network_helpers 等を除外したバリエーションを検討する場合は、`all.entry.js` の import 組み合わせとビルドスクリプトの alias ロジックを調整する必要があります。
+
+### CI との連携
+- `.github/workflows/build-js.yml` が `npm run build:bundle` を実行し、`git diff -- app/javascript/flash_unified/all.bundle.js` で差分を検知します。
+- 差分が存在する場合はワークフローがエラー終了し、ローカルで再ビルド → コミットするよう警告します。
+- CI 環境では Rails 8.0 / Ruby 3.3 を代表 Appraisal として unit/system テストを実行します。開発中も同等のコマンドで再現できます。
+
 ## A. コントリビュートについて
 
 バグ報告・機能提案・プルリクエスト歓迎します。以下の点にご協力ください：

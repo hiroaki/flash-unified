@@ -1,0 +1,10 @@
+{
+  "name": "flash-unified",
+  "private": true,
+  "scripts": {
+    "build:bundle": "node scripts/build-all-bundle.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.11"
+  }
+}
