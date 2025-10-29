@@ -43,11 +43,15 @@ module Dummy
     # Opt in to the Rails 8.1 `to_time` behavior change to silence the
     # deprecation warning. Rails 8.1 changes how `to_time` preserves timezone
     # information; explicitly setting `config.active_support.to_time_preserves_timezone = :zone`
-    # opts into the new behavior when supported.
-    begin
-      config.active_support.to_time_preserves_timezone = :zone
-    rescue NoMethodError
-      # Older Rails versions may not support this setting; ignore if absent.
+    # opts into the new behavior when supported. Only set this on Rails < 8.1
+    # to avoid a deprecation in 8.1+ and a missing method on much older versions.
+    # Apply this setting only for Rails versions older than 8.1.0. Note that prerelease versions (e.g., 8.1.0.beta) are naturally excluded by Gem::Version comparison.
+    if Gem::Version.new(Rails.version) < Gem::Version.new("8.1.0")
+      begin
+        config.active_support.to_time_preserves_timezone = :zone
+      rescue NoMethodError
+        # Older Rails versions may not support this setting; ignore if absent.
+      end
     end
   end
 end
