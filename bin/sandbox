@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Usage: bin/sandbox <variant> [--path <path_to_gem_root>] [--scaffold]
+# Usage: bin/sandbox <variant> [--path <path_to_gem_root>] [--scaffold] [--rails <version>]
 # Variants:
 #   importmap   -> Rails app with importmap JS (default), asset pipeline default
 #   propshaft   -> Rails app with importmap JS and Propshaft asset pipeline
@@ -10,6 +10,7 @@ set -euo pipefail
 #   bin/sandbox importmap
 #   bin/sandbox propshaft --path ../..   # explicit relative path (when pushing sandbox branch)
 #   bin/sandbox sprockets --scaffold     # optional scaffold and migrate
+#   bin/sandbox importmap --rails 7.1.0   # specify Rails version
 #
 # By default, this script writes a RELATIVE path to the gem into the sandbox Gemfile
 # (e.g. '../..' from sandbox/<name> to the repo root) so that the sandbox can be
@@ -21,7 +22,7 @@ set -euo pipefail
 
 NAME=${1:-}
 if [[ -z "$NAME" ]]; then
-  echo "Usage: $(basename "$0") <variant: importmap|propshaft|sprockets> [--path <gem_path>] [--scaffold]" >&2
+  echo "Usage: $(basename "$0") <variant: importmap|propshaft|sprockets> [--path <gem_path>] [--scaffold] [--rails <version>]" >&2
   exit 1
 fi
 
@@ -32,6 +33,9 @@ ROOT_DIR=$(cd "$(dirname "$0")/.." && pwd)
 GEM_PATH="$ROOT_DIR"   # Will be replaced with a relative path unless --path is given
 GEM_PATH_OVERRIDDEN=false
 DO_SCAFFOLD=false
+
+# Allow setting Rails version via env var; CLI --rails overrides it
+RAILS_VERSION="${RAILS_VERSION:-}"
 
 # Parse optional flags
 shift
@@ -46,12 +50,35 @@ while (( $# )); do
       DO_SCAFFOLD=true
       shift 1
       ;;
+    --rails)
+      if [[ -z "${2:-}" ]]; then
+        echo "Missing argument for --rails" >&2
+        exit 1
+      fi
+      RAILS_VERSION="$2"
+      shift 2
+      ;;
     *)
       echo "Unknown option: $1" >&2
       exit 1
       ;;
   esac
 done
+
+# Validate requested Rails version (if any)
+if [[ -n "$RAILS_VERSION" ]]; then
+  # Check that the version exists on RubyGems
+  if ! gem specification rails -v "$RAILS_VERSION" --remote >/dev/null 2>&1; then
+    echo "Rails version '$RAILS_VERSION' not found on RubyGems." >&2
+    exit 1
+  fi
+
+  # If not installed locally, fail with a warning (don't auto-install)
+  if ! gem list -i rails -v "$RAILS_VERSION" >/dev/null 2>&1; then
+    echo "Rails $RAILS_VERSION is not installed locally. Please install it (e.g. 'gem install rails -v $RAILS_VERSION') and re-run this script." >&2
+    exit 1
+  fi
+fi
 
 SANDBOX_DIR="$ROOT_DIR/sandbox/$NAME"
 
@@ -63,7 +90,12 @@ fi
 mkdir -p "$ROOT_DIR/sandbox"
 
 # Build rails new command with appropriate JS and asset pipeline settings
-rails_new=(rails new "$NAME" --skip-git --skip-bundle)
+# If RAILS_VERSION is provided, call rails _<version>_ new ...
+rails_new=(rails)
+if [[ -n "$RAILS_VERSION" ]]; then
+  rails_new+=("_${RAILS_VERSION}_")
+fi
+rails_new+=(new "$NAME" --skip-git --skip-bundle)
 case "$NAME" in
   importmap)
     rails_new+=(--javascript=importmap)
@@ -108,7 +140,7 @@ FLASH_UNIFIED_SCAFFOLD=$([[ "$DO_SCAFFOLD" == "true" ]] && echo 1 || echo 0) \
   bin/rails app:template LOCATION="$APP_TEMPLATE"
 
 # Done
-RELATIVE_SANDBOX_DIR=$(ruby -r pathname -e 'puts Pathname.new(ARGV[0]).relative_path_from(ARGV[1])' "$SANDBOX_DIR" "$ROOT_DIR")
+RELATIVE_SANDBOX_DIR=$(ruby -r pathname -e 'puts Pathname.new(ARGV[0]).relative_path_from(Pathname.new(ARGV[1]) )' "$SANDBOX_DIR" "$ROOT_DIR")
 cat <<EOM
 
 Sandbox created at: $RELATIVE_SANDBOX_DIR
