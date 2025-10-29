@@ -16,7 +16,7 @@
     <%= stylesheet_link_tag "application" %>
     <%= javascript_include_tag "turbo", type: "module" %>
     <script type="module">
-  import { renderFlashMessages } from "flash_unified/all";
+      import { renderFlashMessages } from "flash_unified/all";
       const init = () => { Promise.resolve().then(() => renderFlashMessages()); };
       if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", init);
