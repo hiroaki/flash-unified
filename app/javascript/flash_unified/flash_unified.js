@@ -7,6 +7,150 @@
  */
 
 /**
+ * Custom renderer function set by user. When null, defaultRenderer is used.
+ * @type {Function|null}
+ */
+let customRenderer = null;
+
+/**
+ * Set a custom renderer function to replace the default DOM-based rendering.
+ * Pass `null` to reset to default behavior.
+ *
+ * @param {Function|null} fn - A function that receives an array of message objects: [{type, message}, ...]
+ * @returns {void}
+ * @throws {TypeError} If fn is neither a function nor null
+ *
+ * @example
+ * import { setFlashMessageRenderer } from 'flash_unified';
+ * // Use toastr for notifications
+ * setFlashMessageRenderer((messages) => {
+ *   messages.forEach(({ type, message }) => {
+ *     toastr[type === 'alert' ? 'error' : 'info'](message);
+ *   });
+ * });
+ */
+function setFlashMessageRenderer(fn) {
+  if (fn !== null && typeof fn !== 'function') {
+    throw new TypeError('Renderer must be a function or null');
+  }
+  customRenderer = fn;
+}
+
+/**
+ * Return whether an element is visible (basic heuristic).
+ * Considers display/visibility and DOM connection; does not use IntersectionObserver.
+ *
+ * @param {Element} el
+ * @returns {boolean}
+ */
+function isVisible(el) {
+  if (!el || !el.isConnected) return false;
+  const style = window.getComputedStyle(el);
+  return style && style.display !== 'none' && style.visibility !== 'hidden' && parseFloat(style.opacity) > 0;
+}
+
+/**
+ * Collect flash message containers with optional filtering/sorting.
+ * By default, returns all elements matching `[data-flash-message-container]`.
+ * This function is intended for custom renderers to choose target containers.
+ *
+ * Options:
+ * - primaryOnly?: boolean — If true, only include elements with `data-flash-primary` present or set to "true".
+ * - visibleOnly?: boolean — If true, include only elements considered visible.
+ * - sortByPriority?: boolean — If true, sort by numeric `data-flash-message-container-priority` ascending (missing treated as Infinity).
+ * - firstOnly?: boolean — If true, return at most one element after filtering/sorting.
+ * - filter?: (el: Element) => boolean — Additional predicate to include elements.
+ *
+ * @param {Object} [options]
+ * @returns {Element[]} Array of container elements
+ */
+function getFlashMessageContainers(options = {}) {
+  const {
+    primaryOnly = false,
+    visibleOnly = false,
+    sortByPriority = false,
+    firstOnly = false,
+    filter
+  } = options;
+
+  // Fixed selector by gem convention
+  let list = Array.from(document.querySelectorAll('[data-flash-message-container]'));
+
+  if (primaryOnly) {
+    list = list.filter(el => el.hasAttribute('data-flash-primary') && (el.getAttribute('data-flash-primary') !== 'false'));
+  }
+  if (visibleOnly) {
+    list = list.filter(isVisible);
+  }
+  if (typeof filter === 'function') {
+    list = list.filter(filter);
+  }
+  if (sortByPriority) {
+    list.sort((a, b) => {
+      const pa = Number(a.getAttribute('data-flash-message-container-priority'));
+      const pb = Number(b.getAttribute('data-flash-message-container-priority'));
+      const va = Number.isFinite(pa) ? pa : Number.POSITIVE_INFINITY;
+      const vb = Number.isFinite(pb) ? pb : Number.POSITIVE_INFINITY;
+      return va - vb;
+    });
+  }
+  if (firstOnly) {
+    return list.length > 0 ? [list[0]] : [];
+  }
+  return list;
+}
+
+/**
+ * Read default container selection options from <html> data-attributes.
+ * Supported attributes (all optional):
+ * - data-flash-unified-container-primary-only
+ * - data-flash-unified-container-visible-only
+ * - data-flash-unified-container-sort-by-priority
+ * - data-flash-unified-container-first-only
+ *
+ * Each attribute accepts:
+ * - presence with no value → true
+ * - "true"/"1" → true
+ * - "false"/"0" → false
+ * Missing attribute yields undefined (does not override defaults).
+ *
+ * @returns {{ primaryOnly?: boolean, visibleOnly?: boolean, sortByPriority?: boolean, firstOnly?: boolean }}
+ */
+function getHtmlContainerOptions() {
+  const root = document.documentElement;
+  const parse = (name) => {
+    const val = root.getAttribute(name);
+    if (val === null) return undefined;
+    if (val === '' || val.toLowerCase() === 'true' || val === '1') return true;
+    if (val.toLowerCase() === 'false' || val === '0') return false;
+    // Any other non-empty value: treat as true for convenience
+    return true;
+  };
+  return {
+    primaryOnly: parse('data-flash-unified-container-primary-only'),
+    visibleOnly: parse('data-flash-unified-container-visible-only'),
+    sortByPriority: parse('data-flash-unified-container-sort-by-priority'),
+    firstOnly: parse('data-flash-unified-container-first-only')
+  };
+}
+
+/**
+ * Default renderer: renders messages into DOM containers using templates.
+ *
+ * @param {{type: string, message: string}[]} messages - Array of message objects
+ * @returns {void}
+ */
+function defaultRenderer(messages) {
+  // Allow page-wide defaults via <html> data-attributes
+  const containers = getFlashMessageContainers(getHtmlContainerOptions());
+  containers.forEach(container => {
+    messages.forEach(({ type, message }) => {
+      if (message) container.appendChild(createFlashMessageNode(type, message));
+    });
+  });
+}
+
+/**
  * Install a one-time listener that calls `renderFlashMessages()` on initial page load.
  *
  * @example
@@ -26,6 +170,7 @@ function installInitialRenderListener() {
 /**
  * Render messages found in storages into message containers.
  * Delegates message collection to `consumeFlashMessages(false)`, which removes the storage elements.
+ * Uses custom renderer if set, otherwise uses default DOM-based rendering.
  *
  * @example
  * import { renderFlashMessages } from 'flash_unified';
@@ -34,14 +179,13 @@ function installInitialRenderListener() {
  * @returns {void}
  */
 function renderFlashMessages() {
-  const containers = document.querySelectorAll('[data-flash-message-container]');
-
   const messages = consumeFlashMessages(false);
-  containers.forEach(container => {
-    messages.forEach(({ type, message }) => {
-      if (message) container.appendChild(createFlashMessageNode(type, message));
-    });
-  });
+
+  if (typeof customRenderer === 'function') {
+    customRenderer(messages);
+  } else {
+    defaultRenderer(messages);
+  }
 }
 
 /**
@@ -282,6 +426,9 @@ function startMutationObserver() {
 
 export {
   renderFlashMessages,
+  setFlashMessageRenderer,
+  getFlashMessageContainers,
+  getHtmlContainerOptions,
   appendMessageToStorage,
   clearFlashMessages,
   processMessagePayload,

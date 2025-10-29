@@ -1,0 +1,6 @@
+<turbo-frame id="test-frame">
+  <!-- This view is intentionally rendered without the outer layout so the turbo frame
+       receives a fragment that includes a storage which the client should consume. -->
+  <%= flash_storage %>
+  <p>Frame content loaded</p>
+</turbo-frame>

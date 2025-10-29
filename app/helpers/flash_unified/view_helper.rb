@@ -27,6 +27,28 @@ module FlashUnified
     def flash_general_error_messages
       render partial: "flash_unified/general_error_messages"
     end
+
+    # Wrapper helper that renders the common flash-unified pieces in a single
+    # call. This is a non-destructive convenience helper which calls the
+    # existing partial-rendering helpers in a sensible default order. Pass a
+    # hash to disable parts, e.g. `flash_unified_sources(container: false)`.
+    def flash_unified_sources(options = {})
+      opts = {
+        global_storage: true,
+        templates: true,
+        general_errors: true,
+        storage: true,
+        container: false
+      }.merge(options.transform_keys(&:to_sym))
+
+      parts = []
+      parts << flash_global_storage if opts[:global_storage]
+      parts << flash_templates if opts[:templates]
+      parts << flash_general_error_messages if opts[:general_errors]
+      parts << flash_storage if opts[:storage]
+      parts << flash_container if opts[:container]
+
+      safe_join(parts, "\n")
+    end
   end
 end
-

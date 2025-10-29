@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html data-flash-unified-enable-network-errors="true">
+<html data-flash-unified-auto-init="false" data-flash-unified-container-primary-only="true">
   <head>
-    <title>FlashUnified Test</title>
+    <title>FlashUnified Container Selection (Primary)</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
@@ -16,13 +16,13 @@
     <%= stylesheet_link_tag "application" %>
     <%= javascript_include_tag "turbo", type: "module" %>
     <script type="module">
-      // Use bundled entry; rely on its initial render timing
-      import "flash_unified/all";
+      import { installInitialRenderListener } from "flash_unified/all";
+      installInitialRenderListener();
     </script>
   </head>
   <body>
-    <%= flash_unified_sources(container: true, storage: false) %>
-
+    <%= flash_unified_sources(storage: false) %>
     <%= yield %>
+    <%= flash_container %>
   </body>
-  </html>
+</html>

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html data-flash-unified-auto-init="false">
   <head>
-    <title>FlashUnified Auto Off</title>
+    <title>FlashUnified Custom Renderer</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
@@ -15,11 +15,22 @@
     </script>
     <%= stylesheet_link_tag "application" %>
     <%= javascript_include_tag "turbo", type: "module" %>
+
+    <!-- Register custom renderer and kick off manual initialization -->
     <script type="module">
-      // Note: no auto.js import here to prove opt-out works
-      import { renderFlashMessages } from "flash_unified/all";
-      // Expose manual render hook for tests
-      window.__manualRenderFlash__ = () => renderFlashMessages();
+      import { setFlashMessageRenderer, installInitialRenderListener } from "flash_unified/all";
+      setFlashMessageRenderer((messages) => {
+        const ul = document.getElementById('custom-render-target');
+        if (!ul) return;
+        messages.forEach(({ type, message }) => {
+          if (!message) return;
+          const li = document.createElement('li');
+          li.dataset.type = type || 'notice';
+          li.textContent = message;
+          ul.appendChild(li);
+        });
+      });
+      installInitialRenderListener();
     </script>
   </head>
   <body>
@@ -27,4 +38,4 @@
 
     <%= yield %>
   </body>
-  </html>
+</html>

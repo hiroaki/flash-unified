@@ -15,6 +15,7 @@ Rails.application.routes.draw do
   scope :flash do
     get  'basic',            to: 'flash_pages#basic'
     get  'custom',           to: 'flash_pages#custom'
+    get  'custom_renderer',  to: 'flash_pages#custom_renderer'
     get  'stream',           to: 'flash_pages#stream'
     post 'stream_update',    to: 'flash_pages#stream_update'
     get  'events',           to: 'flash_pages#events'
@@ -23,6 +24,11 @@ Rails.application.routes.draw do
     get  'events_with_message', to: 'flash_pages#events_with_message'
     get  'clear',            to: 'flash_pages#clear'
     get  'render_consume',   to: 'flash_pages#render_consume'
+    get  'render_consume_fixed', to: 'flash_pages#render_consume_fixed'
+    get  'frame_target',      to: 'flash_pages#frame_target'
+    get  'render_consume_wrapper', to: 'flash_pages#render_consume_wrapper'
+    get  'container_priority', to: 'flash_pages#container_priority'
+    get  'container_primary',  to: 'flash_pages#container_primary'
   end
 
   # Defines the root path route ("/")

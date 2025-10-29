@@ -2,7 +2,7 @@
 
 source "https://rubygems.org"
 
-gem "rails", "7.1.5.2"
+gem "rails", "7.1.6"
 gem "turbo-rails"
 
 gemspec path: "../"

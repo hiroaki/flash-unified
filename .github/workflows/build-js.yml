@@ -1,0 +1,42 @@
+name: Build JS
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+    branches: [ develop ]
+  push:
+    branches: [ develop ]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    name: Build bundle and run core suites
+    runs-on: ubuntu-latest
+    env:
+      APPRAISAL: rails-8.0
+      RUBY_VERSION: 3.3
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build all.bundle.js
+        run: npm run build:bundle
+
+      - name: Ensure bundle is up to date
+        run: |
+          if ! git diff --quiet -- app/javascript/flash_unified/all.bundle.js; then
+            echo "::error::app/javascript/flash_unified/all.bundle.js is out of date. Run 'npm run build:bundle' locally and commit the result." >&2
+            git diff -- app/javascript/flash_unified/all.bundle.js >&2
+            exit 1
+          fi

@@ -29,7 +29,7 @@ after_bundle do
   end
 
   # Pin the modules (insert after application pin if present, otherwise append)
-  pin_snippet = "\n# flash_unified\npin \"flash_unified\", to: \"flash_unified/flash_unified.js\"\npin \"flash_unified/auto\", to: \"flash_unified/auto.js\"\npin \"flash_unified/turbo_helpers\", to: \"flash_unified/turbo_helpers.js\"\npin \"flash_unified/network_helpers\", to: \"flash_unified/network_helpers.js\"\n"
+  pin_snippet = "\n# flash_unified\npin \"flash_unified/all\", to: \"flash_unified/all.bundle.js\"\n"
   content = File.read(importmap_file)
   unless content.include?('pin "flash_unified"')
     if content =~ /pin \"application\".*\n/
@@ -41,21 +41,17 @@ after_bundle do
 
   # Initialize from application.js via auto entry (idempotent)
   init_snippet = <<~JS
-    import "flash_unified/auto";
+    import "flash_unified/all";
   JS
   app_js_content = File.read(js_entry)
-  unless app_js_content.include?('flash_unified/auto')
+  unless app_js_content.include?('flash_unified/all')
     append_to_file js_entry, init_snippet
   end
 
-  # Add helpers to layout body (avoid duplicates) — keep storage/templates here, not the container
+  # Add helpers to layout body (avoid duplicates)
   layout_file = 'app/views/layouts/application.html.erb'
   helper_block = <<~ERB
-    <%= flash_general_error_messages %>
-    <%= flash_global_storage %>
-    <%= flash_templates %>
-
-    <%= flash_storage %>
+    <%= flash_unified_sources %>
   ERB
 
   if File.exist?(layout_file)

@@ -8,7 +8,7 @@ set -euo pipefail
 #     - Both args default to 'all' when omitted
 #     - Suite is required when specifying an appraisal (suite-first CLI)
 #   suite: system | generators | unit | all
-#   appraisal: rails-7.1 | rails-7.2 | rails-8.0 | all
+#   appraisal: rails-7.1 | rails-7.2 | rails-8.0 | rails-8.1 | all
 # Examples:
 #   bin/test                     # runs all suites for all appraisals (default)
 #   bin/test all all             # explicit: all suites × all appraisals
@@ -35,7 +35,7 @@ Usage: $(basename "$0") [suite] [appraisal]
   - Both args default to 'all' when omitted
   - Suite is required when specifying an appraisal (suite-first CLI)
   suite: system | generators | unit | all
-  appraisal: rails-7.1 | rails-7.2 | rails-8.0 | all
+  appraisal: rails-7.1 | rails-7.2 | rails-8.0 | rails-8.1 | all
 
 Examples:
   $(basename "$0")

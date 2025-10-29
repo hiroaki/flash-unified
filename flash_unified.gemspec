@@ -35,7 +35,9 @@ Gem::Specification.new do |spec|
       "README.md",
       "CHANGELOG.md",
       "flash_unified.gemspec"
-    ].reject { |f| File.directory?(f) }
+    ].reject do |f|
+      File.directory?(f) || f == "app/javascript/flash_unified/all.entry.js"
+    end
     # Ensure version file is included
     files << "lib/flash_unified/version.rb" unless files.include?("lib/flash_unified/version.rb")
     files.uniq

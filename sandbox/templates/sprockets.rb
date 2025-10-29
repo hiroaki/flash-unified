@@ -6,32 +6,22 @@ after_bundle do
   # Inject module script into application layout to import via asset pipeline
   layout_file = 'app/views/layouts/application.html.erb'
   module_script = <<~ERB
-    <link rel="modulepreload" href="<%= asset_path('flash_unified/flash_unified.js') %>">
-    <link rel="modulepreload" href="<%= asset_path('flash_unified/network_helpers.js') %>">
-    <link rel="modulepreload" href="<%= asset_path('flash_unified/turbo_helpers.js') %>">
-    <link rel="modulepreload" href="<%= asset_path('flash_unified/auto.js') %>">
+    <link rel="modulepreload" href="<%= asset_path('flash_unified/all.bundle.js') %>">
     <script type="importmap">
       {
         "imports": {
-          "flash_unified": "<%= asset_path('flash_unified/flash_unified.js') %>",
-          "flash_unified/auto": "<%= asset_path('flash_unified/auto.js') %>",
-          "flash_unified/turbo_helpers": "<%= asset_path('flash_unified/turbo_helpers.js') %>",
-          "flash_unified/network_helpers": "<%= asset_path('flash_unified/network_helpers.js') %>"
+          "flash_unified/all": "<%= asset_path('flash_unified/all.bundle.js') %>"
         }
       }
     </script>
     <script type="module">
-      import "flash_unified/auto";
+      import "flash_unified/all";
     </script>
   ERB
 
   # Add helpers to layout body (avoid duplicates)
   helper_block = <<~ERB
-    <%= flash_general_error_messages %>
-    <%= flash_global_storage %>
-    <%= flash_templates %>
-
-    <%= flash_storage %>
+    <%= flash_unified_sources %>
   ERB
 
   if File.exist?(layout_file)
