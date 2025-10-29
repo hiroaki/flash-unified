@@ -51,12 +51,7 @@ after_bundle do
   # Add helpers to layout body (avoid duplicates)
   layout_file = 'app/views/layouts/application.html.erb'
   helper_block = <<~ERB
-    <%= flash_general_error_messages %>
-    <%= flash_global_storage %>
-    <%= flash_templates %>
-    <%= flash_container %>
-
-    <%= flash_storage %>
+    <%= flash_unified_sources %>
   ERB
 
   if File.exist?(layout_file)
