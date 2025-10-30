@@ -2,7 +2,8 @@
   "name": "flash-unified",
   "private": true,
   "scripts": {
-    "build:bundle": "node scripts/build-all-bundle.mjs"
+    "build:bundle": "node scripts/build-all-bundle.mjs",
+    "watch:bundle": "node scripts/build-all-bundle.mjs --watch"
   },
   "devDependencies": {
     "esbuild": "^0.25.11"

@@ -1,4 +1,4 @@
-<div data-flash-storage style="display: none;">
+<div data-flash-storage data-object-id="<%= flash.object_id %>" style="display: none;">
   <ul>
     <% flash.each do |type, message| %>
       <li data-type="<%= type %>"><%= message %></li>

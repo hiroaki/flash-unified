@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html data-flash-unified-enable-network-errors="true">
+  <head>
+    <title>Flash Frame Duplication</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <link rel="modulepreload" href="<%= asset_path('flash_unified/all.bundle.js') %>">
+    <script type="importmap">
+      {
+        "imports": {
+          "flash_unified/all": "<%= asset_path('flash_unified/all.bundle.js') %>"
+        }
+      }
+    </script>
+
+    <%= stylesheet_link_tag "application" %>
+
+    <%= javascript_include_tag "turbo", type: "module" %>
+
+    <script type="module">
+      // Use the bundled entry for auto wiring and re-exported APIs
+      import "flash_unified/all";
+    </script>
+  </head>
+
+  <body>
+    <div id="versions" style="color: #999999">
+      Ruby <span data-version-of="ruby"><%= RUBY_VERSION %></span> /
+      Rails <span data-version-of="rails"><%= Rails.version %></span> /
+      Turbo <span data-version-of="turbo-rails"><%= Gem.loaded_specs['turbo-rails']&.version %></span>
+    </div>
+    <div id="time-current" style="color: #999999">
+      <span><%= Time.current.strftime("%Y-%m-%d %H:%M:%S.%L") %></span>
+    </div>
+
+    <%= flash_unified_sources %>
+
+    <%= yield %>
+  </body>
+</html>

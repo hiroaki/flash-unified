@@ -29,6 +29,7 @@ Rails.application.routes.draw do
     get  'render_consume_wrapper', to: 'flash_pages#render_consume_wrapper'
     get  'container_priority', to: 'flash_pages#container_priority'
     get  'container_primary',  to: 'flash_pages#container_primary'
+    get  'frame_duplication',  to: 'flash_duplications#frame'
   end
 
   # Defines the root path route ("/")
