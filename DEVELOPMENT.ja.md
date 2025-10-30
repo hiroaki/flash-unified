@@ -154,6 +154,15 @@ bin/sandbox sprockets --scaffold --path ../..
 3. テスト実行
 	 - 少なくとも `bin/test unit` と `bin/test system rails-7.2`（必要に応じて他 Appraisal）でグリーンを確認します。
 
+開発中にファイルを保存するたび自動で再ビルドしたい場合はウォッチモードを使います。
+
+- esbuild の組み込みウォッチ
+  ```bash
+  npm run watch:bundle
+  ```
+
+ウォッチ中でも最終的には `npm run build:bundle` を実行して `app/javascript/flash_unified/all.bundle.js` を更新・コミットしてください。
+
 ### リリース/メンテナンス時の注意
 - gem 公開前は `npm run build:bundle` を実行し、`all.bundle.js` を最新化した上でコミットすること。
 - esbuild や Node.js のバージョンを更新した場合は、生成結果とテスト一式を再確認してください。

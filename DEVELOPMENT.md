@@ -155,6 +155,15 @@ Follow the instructions after generation to start the server with `bin/rails ser
 3. Run tests
 	 - At minimum, run `bin/test unit` and `bin/test system rails-7.2` (extend to other Appraisals as needed).
 
+During development, if you want the bundle to be rebuilt automatically whenever you save files, use watch mode.
+
+- Built-in esbuild watch
+  ```bash
+  npm run watch:bundle
+  ```
+
+Even when using the watcher, make sure to run `npm run build:bundle` and commit `app/javascript/flash_unified/all.bundle.js` before pushing.
+
 ### Release & Maintenance Notes
 - Before publishing the gem, run `npm run build:bundle` and commit the refreshed `all.bundle.js`.
 - If you bump esbuild or Node.js versions, re-run the build and full test suite to confirm compatibility.
