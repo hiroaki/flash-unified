@@ -1,0 +1,12 @@
+<h1>Turbo Frame Flash Duplication</h1>
+<p>This page embeds a flash storage inside a turbo frame while the layout also renders flash_unified_sources.</p>
+
+<div data-testid="frame-duplication-container">
+  <%= flash_container %>
+</div>
+
+<%= turbo_frame_tag "duplication-frame" do %>
+  <div data-testid="frame-duplication-storage">
+    <%= flash_storage %>
+  </div>
+<% end %>
