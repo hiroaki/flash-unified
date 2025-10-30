@@ -30,76 +30,63 @@ module FlashUnified
 
           === FlashUnified installation instructions ===
 
-          Importing the JavaScript
-          - Importmap: add to `config/importmap.rb`:
+          Quick start (Importmap)
+          1) Add to `config/importmap.rb`:
 
-              pin "flash_unified", to: "flash_unified/flash_unified.js"
-              pin "flash_unified/auto", to: "flash_unified/auto.js"
-              pin "flash_unified/turbo_helpers", to: "flash_unified/turbo_helpers.js"
-              pin "flash_unified/network_helpers", to: "flash_unified/network_helpers.js"
+              pin "flash_unified/all", to: "flash_unified/all.bundle.js"
 
-            Quick start (auto init):
+          2) Import once in your JavaScript entry point (e.g. `app/javascript/application.js`):
 
-              Importing `flash_unified/auto` sets up Turbo listeners and triggers an initial render.
+              import "flash_unified/all";
 
-              import "flash_unified/auto";
-              // Configure via <html data-flash-unified-*>:
-              //   data-flash-unified-auto-init="false" (opt-out)
-              //   data-flash-unified-enable-network-errors="true" (install Turbo network error listeners)
+          3) In your layout (inside `<body>`):
 
+              <%= flash_unified_sources %>
+              <%= flash_container %>
+
+          Auto-initialization is enabled by default. Control it via `<html>` attributes:
+            - `data-flash-unified-auto-init="false"` to disable all automatic wiring.
+            - `data-flash-unified-enable-network-errors="true"` to enable network error listeners.
+
+          Advanced usage (optional)
             Manual control:
 
               import { renderFlashMessages, appendMessageToStorage } from "flash_unified";
               import { installTurboRenderListeners } from "flash_unified/turbo_helpers";
               installTurboRenderListeners();
 
-            Network helpers (optional, framework-agnostic):
+            Network helpers:
 
               import { notifyNetworkError, notifyHttpError } from "flash_unified/network_helpers";
               // notifyNetworkError();
               // notifyHttpError(413);
 
-          - Asset pipeline (Propshaft / Sprockets): the engine adds its `app/javascript` to the asset paths; add modulepreload links and an inline importmap in your layout's `<head>` and import the bare specifier.
+          Propshaft / Sprockets quick start
+            Place in `<head>`:
 
-              <link rel="modulepreload" href="<%= asset_path('flash_unified/flash_unified.js') %>">
-              <link rel="modulepreload" href="<%= asset_path('flash_unified/network_helpers.js') %>">
-              <link rel="modulepreload" href="<%= asset_path('flash_unified/turbo_helpers.js') %>">
-              <link rel="modulepreload" href="<%= asset_path('flash_unified/auto.js') %>">
+              <link rel="modulepreload" href="<%= asset_path('flash_unified/all.bundle.js') %>">
               <script type="importmap">
                 {
                   "imports": {
-                    "flash_unified": "<%= asset_path('flash_unified/flash_unified.js') %>",
-                    "flash_unified/auto": "<%= asset_path('flash_unified/auto.js') %>",
-                    "flash_unified/turbo_helpers": "<%= asset_path('flash_unified/turbo_helpers.js') %>",
-                    "flash_unified/network_helpers": "<%= asset_path('flash_unified/network_helpers.js') %>"
+                    "flash_unified/all": "<%= asset_path('flash_unified/all.bundle.js') %>"
                   }
                 }
               </script>
               <script type="module">
-                import "flash_unified/auto";
+                import "flash_unified/all";
               </script>
 
-              Remove the `import "flash_unified/auto";` line if you don't want automatic initialization.
+            (Optionally map `flash_unified` or other modules if you need manual control APIs.)
 
-          How to place partials in your layout
-          - The gem's view helpers render engine partials. After running this generator you'll have the partials available under `app/views/flash_unified` and can customize them as needed.
-
-          Recommended layout snippet (inside `<body>`, global helpers):
-
+          Layout helpers
             <%= flash_general_error_messages %>
             <%= flash_global_storage %>
             <%= flash_templates %>
-
-          Place the visible container wherever messages should appear:
-
             <%= flash_container %>
-
-          Embed per-response storage inside content (e.g. Turbo Frame responses):
-
             <%= flash_storage %>
 
           Documentation
-          - For full details and customization guidance, see README.md / README.ja.md in the gem.
+          - See README.md / README.ja.md for customization guidance and advanced scenarios.
 
         MSG
 
