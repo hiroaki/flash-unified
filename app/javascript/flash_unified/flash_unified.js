@@ -192,6 +192,21 @@ function renderFlashMessages() {
  * Collect messages from all `[data-flash-storage]` elements.
  * By default, removes each storage after reading; pass `keep = true` to preserve them.
  *
+ * Notes about deduplication using object_id:
+ * - Each storage may include a `data-object-id` attribute populated server-side
+ *   (the Rails `flash.object_id` in `_storage.html.erb`). This value is used to
+ *   deduplicate storages that originate from the same FlashHash instance.
+ * - This is useful for the common case where the same `flash` object is rendered
+ *   both in the layout and inside a Turbo Frame during a single full-page render:
+ *   those storages will share the same `data-object-id` and only one will be processed.
+ * - `flash.object_id` is scoped to the Ruby object instance for the current request.
+ *   Storages coming from separate requests will have different object ids and
+ *   therefore will not be deduplicated (this is intentional — separate requests
+ *   should be allowed to show their messages).
+ * - If a storage does not provide `data-object-id`, it is treated as independent.
+ *   Consumers may want to ensure the server partial emits `data-object-id` when
+ *   appropriate to enable robust deduplication.
+ *
  * @param {boolean} [keep=false] - When true, do not remove storage elements after reading.
  * @returns {{type: string, message: string}[]} Array of message objects.
  *
@@ -200,8 +215,16 @@ function renderFlashMessages() {
  */
 function consumeFlashMessages(keep = false) {
   const storages = document.querySelectorAll('[data-flash-storage]');
+  const seen = new Set();
   const messages = [];
   storages.forEach(storage => {
+    const objectId = storage.getAttribute('data-object-id');
+    if (objectId && seen.has(objectId)) {
+      if (!keep) storage.remove();
+      return; // skip duplicate
+    }
+    if (objectId) seen.add(objectId);
+
     const ul = storage.querySelector('ul');
     if (ul && ul.children.length > 0) {
       ul.querySelectorAll('li').forEach(li => {
