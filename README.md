@@ -101,11 +101,33 @@ Place the "container" with the helper at the location where you want to display 
   ...
 ```
 
-That's it — event handlers that monitor page changes will scan storages and render messages into containers.
+When using Turbo, you need to place storage elements within the content that updates.
 
-As mentioned earlier, no changes are required in your controllers for setting Flash messages.
+**Turbo Frame**
 
-**For detailed usage** (customization, API reference, Turbo/network helpers, templates, locales, generator usage, and examples), see [`ADVANCED.md`](ADVANCED.md). Examples for using asset pipelines like Sprockets are also provided.
+Place a storage element inside the frame:
+```erb
+<turbo-frame id="foo">
+  <%= flash_storage %>
+```
+
+**Turbo Stream**
+
+Add a stream to append a storage element to the global storage element:
+```erb
+<%= flash_turbo_stream %>
+```
+
+Or in a controller:
+```ruby
+render turbo_stream: flash_turbo_stream
+```
+
+That's it. Event handlers that monitor page changes will scan storages and render messages into containers.
+
+## Detailed usage
+
+For customization, API reference, Turbo/network helpers, templates, locales, generator usage, and more, see [`ADVANCED.md`](ADVANCED.md). Examples for using asset pipelines like Sprockets are also provided.
 
 ## Development
 

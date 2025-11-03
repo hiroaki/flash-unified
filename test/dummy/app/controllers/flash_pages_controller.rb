@@ -31,6 +31,20 @@ class FlashPagesController < ApplicationController
     end
   end
 
+  # Page that demonstrates using the `flash_turbo_stream` helper
+  def stream_helper; end
+
+  def stream_update_helper
+    flash.now[:notice] = 'From stream helper'
+    respond_to do |format|
+      format.turbo_stream do
+        # Use the new helper to render the turbo_stream action
+        render turbo_stream: helpers.flash_turbo_stream
+      end
+      format.html { head :ok }
+    end
+  end
+
   def events; end
 
   def missing_template
