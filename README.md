@@ -120,7 +120,7 @@ Add a stream to append a storage element to the global storage element:
 
 Or in a controller:
 ```ruby
-render turbo_stream: flash_turbo_stream
+render turbo_stream: helpers.flash_turbo_stream
 ```
 
 That's it. Event handlers that monitor page changes will scan storages and render messages into containers.

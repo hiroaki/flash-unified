@@ -120,7 +120,7 @@ Turbo を使用する場合は、更新するコンテンツ内にストレー�
 
 またはコントローラで済ませる場合：
 ```ruby
-render turbo_stream: flash_turbo_stream
+render turbo_stream: helpers.flash_turbo_stream
 ```
 
 以上です。ページの変更を監視するイベントのハンドラーが、ストレージを走査してメッセージをコンテナに描画します。

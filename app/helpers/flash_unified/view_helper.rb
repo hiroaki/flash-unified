@@ -36,7 +36,7 @@ module FlashUnified
     #   <%= flash_turbo_stream %>
     #
     # Usage in controllers:
-    #   render turbo_stream: flash_turbo_stream
+    #   render turbo_stream: helpers.flash_turbo_stream
     def flash_turbo_stream
       turbo_stream.append("flash-storage", partial: "flash_unified/storage")
     end
