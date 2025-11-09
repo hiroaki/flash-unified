@@ -54,7 +54,7 @@ Then import it from your JS entry (for example `app/javascript/application.js`):
 import "flash_unified/all";
 ```
 
-Importing `flash_unified/all` enables the default Turbo integration and performs an initial render automatically. Behavior is configurable via `<html>` data attributes:
+Importing `flash_unified/all` enables the default Turbo integration and performs an initial render automatically. You can configure this behavior via <html> data attributes:
 - `data-flash-unified-auto-init="false"` — disable automatic initialization (opt-out)
 - `data-flash-unified-enable-network-errors="true"` — enable network error helpers (opt-in)
 
@@ -84,6 +84,9 @@ pin "flash_unified/network_helpers", to: "flash_unified/network_helpers.js"
 
 If you want to access individual modules directly, add them to the import map in the same way.
 
+> [!NOTE]
+> Throughout this document, code examples use `import { ... } from "flash_unified"` for simplicity. If you have pinned `flash_unified/all` in your Importmap (as recommended for most setups), you should use `import { ... } from "flash_unified/all"` instead. Adjust the import path according to your Importmap configuration.
+
 ### 3. JavaScript initialization
 
 **Automatic initialization (for simple implementation cases)**
@@ -112,7 +115,7 @@ This will render Flash messages when page changes (Turbo events) are detected.
 
 When implementing full manual control including event registration, import the core library and implement rendering processes using its methods.
 
-At minimum, you will typically call `renderFlashMessages()` at page load (initial display) to process messages that may have been embedded in the page by the server-side. This routine procedure is provided as `installInitialRenderListener()`:
+At minimum, call `renderFlashMessages()` at page load (initial display) to process messages that may have been embedded in the page by the server-side. This routine procedure is provided as `installInitialRenderListener()`:
 ```js
 import { installInitialRenderListener } from "flash_unified";
 installInitialRenderListener();
@@ -127,7 +130,7 @@ renderFlashMessages();
 
 ### 1. Message sources
 
-Place the source elements for JavaScript to build Flash message elements at a global location. Since these are hidden elements, they can be placed anywhere, but place them right after `<body>`:
+Place the source elements for JavaScript to build Flash message elements at a global location. These hidden elements can be placed anywhere in the page, but it is recommended to place them right after `<body>`:
 ```erb
 <body>
   <%= flash_unified_sources %>
@@ -189,7 +192,7 @@ Below is a partial excerpt:
 
 Template IDs like `flash-message-template-notice` correspond to Flash "types" (e.g., `:notice`, `:alert`, `:warning`). The client references the type included in the message to select the appropriate template.
 
-The client inserts the message string into the `.flash-message-text` element within the template. There are no other constraints. Feel free to add additional elements (such as a dismiss button) as needed.
+The client inserts the message string into the `.flash-message-text` element within the template. There are no additional constraints. Feel free to add additional elements (such as a dismiss button) as needed.
 
 ## JavaScript API and extensions
 
@@ -207,8 +210,8 @@ The JavaScript is divided into a core library and optional helper modules. Use o
 - `storageHasMessages()` — utility to check if storages contain existing messages.
 - `startMutationObserver()` — (optional: experimental) monitor insertion of storages/templates and render.
 - `consumeFlashMessages(keep = false)` — scan all storages embedded in the current page and return an array of messages (`{ type, message }[]`). By default, performs destructive operation by removing storage elements, but passing `keep = true` retrieves without removing storages.
-- `aggregateFlashMessages()` — thin wrapper for `consumeFlashMessages(true)`, non-destructively scans storages and returns message array.
-- `getFlashMessageContainers(options = {})` — collect candidate container elements for rendering. See "Container selection" described later for details.
+- `aggregateFlashMessages()` — a thin wrapper for `consumeFlashMessages(true)`, non-destructively scans storages and returns message array.
+- `getFlashMessageContainers(options = {})` — collect candidate container elements for rendering. To control this, refer to the section "Container selection" described later.
 - `getHtmlContainerOptions()` — read container selection options (firstOnly/sortByPriority/visibleOnly/primaryOnly) from `<html>` data attributes (used by default renderer).
 
 To display Flash messages generated within the client at any timing, embed the message first and then perform the rendering process as follows:
@@ -284,24 +287,24 @@ Alternatively, you can disable auto and initialize manually:
 </html>
 ```
 
-Note: If you register a custom renderer after the initial render, it will be applied from subsequent renderings. To avoid mixed behavior, it is recommended to register before the initial render (or disable auto and implement rendering process manually).
+Note: If you register a custom renderer after the initial render, it will be applied from subsequent renderings. To avoid mixed behavior, it is recommended to register before the initial render (or disable auto and implement the rendering process manually).
 
 ### Container selection
 
-By default, Flash messages formatted with templates are inserted into all container elements (`[data-flash-message-container]`) even when there are multiple containers. To narrow down to specific containers, create a custom renderer or set HTML data attributes.
+By default, Flash messages formatted with templates are inserted into all container elements (`[data-flash-message-container]`) even when there are multiple containers. To target specific containers, create a custom renderer or set HTML data attributes.
 
 #### Creating a custom renderer
 
-When setting a custom renderer, you are not required to follow the container conventions and can retrieve container elements arbitrarily and insert Flash messages arbitrarily. If you want to narrow down while following existing conventions, you can also use the optional utility `getFlashMessageContainers()` to collect and filter candidates.
+When setting a custom renderer, you are not required to follow the container conventions and can retrieve container elements arbitrarily and insert Flash messages arbitrarily. If you want to target containers while following existing conventions, you can also use the optional utility `getFlashMessageContainers()` to collect and filter candidates.
 
 Main options for `getFlashMessageContainers(options)`:
-- `primaryOnly?: boolean` — narrow down to only elements with `data-flash-primary` (excludes "false")
-- `visibleOnly?: boolean` — narrow down to only visible elements (simple judgment by display/visibility/opacity)
+- `primaryOnly?: boolean` — limit to only elements with `data-flash-primary` (excludes "false")
+- `visibleOnly?: boolean` — limit to only visible elements (simple judgment by display/visibility/opacity)
 - `sortByPriority?: boolean` — sort in ascending order by numeric value of `data-flash-message-container-priority` (unspecified treated as Infinity)
 - `firstOnly?: boolean` — return only the first item after filtering/sorting
 - `filter?: (el) => boolean` — apply additional filtering predicate
 
-Example) Render to only one container with high priority and currently visible:
+Example: Render to only one container that has high priority and is currently visible:
 ```js
 import { setFlashMessageRenderer, getFlashMessageContainers } from "flash_unified";
 
@@ -322,7 +325,7 @@ setFlashMessageRenderer((messages) => {
 
 Without creating a custom renderer, you can specify first-only / priority / visible / primary selection rules via data attributes on `<html>`.
 
-Narrow down the default renderer's output targets without code (`<html>` data attributes):
+Limit the default renderer’s output targets without writing any code (`<html>` data attributes):
 ```erb
 <html
   data-flash-unified-container-first-only="true"
@@ -336,7 +339,7 @@ Specifiable attributes (corresponding to collection options):
 - `data-flash-unified-container-visible-only` — only visible containers
 - `data-flash-unified-container-primary-only` — limit to elements with `data-flash-primary`
 
-Value interpretation: Attribute presence (including empty value) / `true` / `1` is true, `false` / `0` is false. Unspecified remains at default value.
+Interpretation of values: Attribute presence (including empty value) / `true` / `1` is true, `false` / `0` is false. Unspecified remains at default value.
 
 ### Custom events
 
