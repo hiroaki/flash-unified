@@ -82,13 +82,16 @@ pin "flash_unified/network_helpers", to: "flash_unified/network_helpers.js"
 </script>
 ```
 
-個別モジュールへ直接アクセスしたい場合は、同様に import map に追記してください。
+個別モジュールへ直接アクセスしたい場合は、同様に Importmap に追記してください。
+
+> [!NOTE]
+> このドキュメントのコード例では、簡便のため `import { ... } from "flash_unified"` と記載していますが、Importmap で `flash_unified/all` を pin している場合は、 `import { ... } from "flash_unified/all"` のように import パスを調整してください。ご自身の Importmap の設定に合わせて読み替えてください。
 
 ### 3. JavaScript 初期化処理
 
 **自動初期化（簡易な実装のケース）**
 
-`auto.js` を利用する場合、 JavaScript エントリポイント（例: app/javascript/application.js）で `auto` 読み込みます：
+`auto.js` を利用する場合は、 JavaScript エントリポイント（例: app/javascript/application.js）で `auto` 読み込みます：
 ```js
 import "flash_unified/auto";
 ```

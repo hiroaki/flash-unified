@@ -2,7 +2,7 @@
 
 FlashUnified provides a unified Flash message rendering mechanism for Rails applications that can be used from both server-side and client-side code.
 
-Server-side view helpers embed Flash messages as data in the page, and a lightweight client-side JavaScript library reads those storages and renders messages into visible containers using templates.
+Server-side view helpers embed Flash messages as data in the page, and a lightweight client-side JavaScript library reads those storage elements and renders messages into visible containers using templates.
 
 ## Current status
 
@@ -23,7 +23,7 @@ The key point to solving these challenges is that rendering needs to be performe
 1. The server embeds the Flash object as a hidden DOM element within the page, renders the page, and returns it.
 2. When the client-side JavaScript detects a page change, it scans those elements, reads the embedded messages, formats them using templates, and inserts (renders) them into the specified container elements. At that time, message elements are removed from the DOM to avoid duplicate displays.
 
-The mechanism is simple, and to implement it, we only need to decide on the rules for how to embed. In this gem, we define the embedded DOM structure as follows and call it "storage":
+The mechanism is simple; to implement it, we only need to define the rules for embedding. In this gem, we define the embedded DOM structure below and refer to it as a "storage element":
 ```erb
 <div data-flash-storage style="display: none;">
   <ul>
@@ -34,9 +34,9 @@ The mechanism is simple, and to implement it, we only need to decide on the rule
 </div>
 ```
 
-Since storage is a hidden element, it can be placed anywhere in the page rendered by the server. For Turbo Frames, place it inside the frame.
+Since a storage element is hidden, it can be placed anywhere in the page rendered by the server. For Turbo Frames, place a storage element inside the frame.
 
-The "container" where Flash messages are displayed and the "templates" for formatting can be placed anywhere regardless of the storage. This means that even with Turbo Frames, it works with Flash rendering areas placed outside the frame.
+The "container" where Flash messages are displayed and the "templates" for formatting can be placed anywhere, regardless of the storage element. This means that even with Turbo Frames, it works with Flash rendering areas placed outside the frame.
 
 When handling cases on the client-side where a proxy returns an error when a form is submitted, instead of displaying the error message directly from JavaScript, you can render Flash in the same way (using the same templates and processing flow) by temporarily embedding the message as a storage element.
 
@@ -87,21 +87,21 @@ import "flash_unified/all";
 
 ### 3. Server-side setup
 
-Place the "sources" with the helper right after `<body>` in your layout:
+Place the "sources" helper right after `<body>` in your layout. This emits hidden elements and therefore does not affect your layout:
 ```erb
 <body>
   <%= flash_unified_sources %>
   ...
 ```
 
-Place the "container" with the helper at the location where you want to display messages:
+Place the "container" helper at the location where you want to display messages:
 ```erb
 <div class="notify">
   <%= flash_container %>
   ...
 ```
 
-When using Turbo, you need to place storage elements within the content that updates.
+When using Turbo, you need to place storage elements (hidden elements) within the content that updates.
 
 **Turbo Frame**
 
@@ -113,25 +113,26 @@ Place a storage element inside the frame:
 
 **Turbo Stream**
 
-Add a stream to append a storage element to the global storage element:
+Add a stream to append a storage element to the global storage:
 ```erb
 <%= flash_turbo_stream %>
 ```
+
 
 Or in a controller:
 ```ruby
 render turbo_stream: helpers.flash_turbo_stream
 ```
 
-That's it. Event handlers that monitor page changes will scan storages and render messages into containers.
+That's it. Event handlers that monitor page changes will scan storage elements and render messages into containers.
 
 ## Detailed usage
 
-For customization, API reference, Turbo/network helpers, templates, locales, generator usage, and more, see [`ADVANCED.md`](ADVANCED.md). Examples for using asset pipelines like Sprockets are also provided.
+For customization options, API references, Turbo/network helpers, templates, locales, generators, and more, see [`ADVANCED.md`](ADVANCED.md). Examples for using asset pipelines like Sprockets are also provided.
 
 ## Development
 
-For detailed development and testing procedures, see [DEVELOPMENT.md](DEVELOPMENT.md).
+For detailed development and testing procedures, see [`DEVELOPMENT.md`](DEVELOPMENT.md).
 
 ## Changelog
 
