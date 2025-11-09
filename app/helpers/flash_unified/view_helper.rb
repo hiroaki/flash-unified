@@ -28,6 +28,19 @@ module FlashUnified
       render partial: "flash_unified/general_error_messages"
     end
 
+    # Turbo Stream helper that appends flash storage to the global storage element.
+    # This is a convenience helper for the common pattern of appending flash messages
+    # via Turbo Stream to the global flash-storage container.
+    #
+    # Usage in views:
+    #   <%= flash_turbo_stream %>
+    #
+    # Usage in controllers:
+    #   render turbo_stream: helpers.flash_turbo_stream
+    def flash_turbo_stream
+      turbo_stream.append("flash-storage", partial: "flash_unified/storage")
+    end
+
     # Wrapper helper that renders the common flash-unified pieces in a single
     # call. This is a non-destructive convenience helper which calls the
     # existing partial-rendering helpers in a sensible default order. Pass a
