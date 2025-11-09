@@ -18,6 +18,8 @@ Rails.application.routes.draw do
     get  'custom_renderer',  to: 'flash_pages#custom_renderer'
     get  'stream',           to: 'flash_pages#stream'
     post 'stream_update',    to: 'flash_pages#stream_update'
+    get  'stream_helper',    to: 'flash_pages#stream_helper'
+    post 'stream_update_helper', to: 'flash_pages#stream_update_helper'
     get  'events',           to: 'flash_pages#events'
     get  'missing_template', to: 'flash_pages#missing_template'
     get  'auto_off',         to: 'flash_pages#auto_off'
