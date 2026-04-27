@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html data-flash-unified-enable-network-errors="true">
+  <head>
+    <title>FlashUnified Test (legacy template marker)</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <link rel="modulepreload" href="<%= asset_path('flash_unified/all.bundle.js') %>">
+    <script type="importmap">
+    {
+      "imports": {
+        "flash_unified/all": "<%= asset_path('flash_unified/all.bundle.js') %>"
+      }
+    }
+    </script>
+    <%= stylesheet_link_tag "application" %>
+    <%= javascript_include_tag "turbo", type: "module" %>
+    <script type="module">
+      import "flash_unified/all";
+    </script>
+  </head>
+  <body>
+    <%= flash_global_storage %>
+    <%= flash_general_error_messages %>
+
+    <template id="flash-message-template-notice">
+      <div class="flash-notice" role="alert"><span class="flash-message-text"></span></div>
+    </template>
+    <template id="flash-message-template-warning">
+      <div class="flash-warning" role="alert"><span class="flash-message-text"></span></div>
+    </template>
+    <template id="flash-message-template-alert">
+      <div class="flash-alert" role="alert"><span class="flash-message-text"></span></div>
+    </template>
+
+    <%= flash_container %>
+    <%= yield %>
+  </body>
+  </html>

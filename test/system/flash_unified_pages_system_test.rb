@@ -66,4 +66,15 @@ class FlashUnifiedPagesSystemTest < ApplicationSystemTestCase
     click_on "Clear All"
     assert_no_selector "[data-flash-message]"
   end
+
+  test "legacy .flash-message-text templates still render and clear messages" do
+    visit "/flash/legacy_clear"
+
+    assert_selector "[data-flash-message] .flash-message-text", text: "Legacy clear me (alert)"
+    assert_selector "[data-flash-message] .flash-message-text", text: "Legacy clear me (notice)"
+
+    click_on "Clear All"
+
+    assert_no_selector "[data-flash-message]"
+  end
 end

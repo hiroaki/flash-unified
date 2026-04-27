@@ -25,6 +25,7 @@ Rails.application.routes.draw do
     get  'auto_off',         to: 'flash_pages#auto_off'
     get  'events_with_message', to: 'flash_pages#events_with_message'
     get  'clear',            to: 'flash_pages#clear'
+    get  'legacy_clear',     to: 'flash_pages#legacy_clear'
     get  'render_consume',   to: 'flash_pages#render_consume'
     get  'render_consume_fixed', to: 'flash_pages#render_consume_fixed'
     get  'frame_target',      to: 'flash_pages#frame_target'
