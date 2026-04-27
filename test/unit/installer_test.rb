@@ -1,4 +1,4 @@
-require 'minitest/autorun'
+require 'test_helper'
 require 'tmpdir'
 require 'fileutils'
 require_relative '../../lib/flash_unified/installer'

@@ -1,4 +1,4 @@
-require 'minitest/autorun'
+require 'test_helper'
 require_relative '../../lib/flash_unified'
 
 class FlashUnifiedUnitTest < Minitest::Test
