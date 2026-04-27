@@ -180,19 +180,19 @@ bin/rails generate flash_unified:install --templates
 ```erb
 <template id="flash-message-template-notice">
   <div class="flash-notice" role="alert">
-    <span class="flash-message-text"></span>
+    <span data-flash-message-text></span>
   </div>
 </template>
 <template id="flash-message-template-warning">
   <div class="flash-warning" role="alert">
-    <span class="flash-message-text"></span>
+    <span data-flash-message-text></span>
   </div>
 </template>
 ```
 
 `flash-message-template-notice` のようなテンプレート ID は Flash の "type"（例: `:notice`, `:alert`, `:warning`）に対応しています。クライアントはメッセージに含まれる type を参照して、該当するテンプレートを選択します。
 
-クライアントはテンプレート内の `.flash-message-text` 要素の中にメッセージ文字列を挿入します。それ以外は制約はありません。必要に応じて追加の要素（例えば dismiss ボタン）を入れるなど、自由に表現してください。
+クライアントはテンプレート内の `data-flash-message-text` 属性が付いた要素にメッセージ文字列を挿入します。互換性のため、既定のレンダラーは従来の `.flash-message-text` マーカーも受け付けます。それ以外は制約はありません。必要に応じて追加の要素（例えば dismiss ボタン）を入れるなど、自由に表現してください。
 
 ## JavaScript API と拡張
 
