@@ -55,7 +55,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "appraisal", ">= 2.5"
   spec.add_development_dependency "capybara", ">= 3.40"
   spec.add_development_dependency "cuprite", ">= 0.17"
-  spec.add_development_dependency "minitest", ">= 5.0"
+  spec.add_development_dependency "minitest", ">= 5.0", "< 6"
   spec.add_development_dependency "puma", ">= 7.0"
   spec.add_development_dependency "rake", ">= 13.0"
   spec.add_development_dependency "sprockets-rails", ">= 3.5"
