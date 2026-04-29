@@ -126,6 +126,14 @@ render turbo_stream: helpers.flash_turbo_stream
 
 That's it. Event handlers that monitor page changes will scan storage elements and render messages into containers.
 
+## Deprecation policy
+
+This version supports both new (`flash-unified-*`) and legacy marker names during the transition period.
+
+Legacy marker names are planned for removal in a future version. For new integrations, use the new names only.
+
+For the name mapping and migration steps, see [`UPGRADING.md`](UPGRADING.md).
+
 ## Detailed usage
 
 For customization options, API references, Turbo/network helpers, templates, locales, generators, and more, see [`ADVANCED.md`](ADVANCED.md). Examples for using asset pipelines like Sprockets are also provided.
