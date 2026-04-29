@@ -311,6 +311,11 @@ function installCustomEventListener() {
   });
 }
 
+// TODO: Drop legacy `.flash-message-text` support in the next major version.
+function findFlashMessageTextTarget(root) {
+  return root.querySelector('[data-flash-message-text]') || root.querySelector('.flash-message-text');
+}
+
 /**
  * Clear rendered flash messages from message containers.
  * If `message` is provided, only remove elements whose text exactly matches it.
@@ -326,7 +331,7 @@ function clearFlashMessages(message) {
     }
 
     container.querySelectorAll('[data-flash-message]')?.forEach(n => {
-      const text = n.querySelector('.flash-message-text');
+      const text = findFlashMessageTextTarget(n);
       if (text && text.textContent.trim() === message) n.remove();
     });
   });
@@ -355,7 +360,7 @@ function createFlashMessageNode(type, message) {
     }
     const root = base.cloneNode(true);
     root.setAttribute('data-flash-message', 'true');
-    const span = root.querySelector('.flash-message-text');
+    const span = findFlashMessageTextTarget(root);
     if (span) span.textContent = message;
     return root;
   } else {
@@ -365,7 +370,7 @@ function createFlashMessageNode(type, message) {
     node.setAttribute('role', 'alert');
     node.setAttribute('data-flash-message', 'true');
     const span = document.createElement('span');
-    span.className = 'flash-message-text';
+    span.setAttribute('data-flash-message-text', '');
     span.textContent = message;
     node.appendChild(span);
     return node;

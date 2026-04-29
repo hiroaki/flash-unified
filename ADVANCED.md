@@ -180,19 +180,19 @@ Below is a partial excerpt:
 ```erb
 <template id="flash-message-template-notice">
   <div class="flash-notice" role="alert">
-    <span class="flash-message-text"></span>
+    <span data-flash-message-text></span>
   </div>
 </template>
 <template id="flash-message-template-warning">
   <div class="flash-warning" role="alert">
-    <span class="flash-message-text"></span>
+    <span data-flash-message-text></span>
   </div>
 </template>
 ```
 
 Template IDs like `flash-message-template-notice` correspond to Flash "types" (e.g., `:notice`, `:alert`, `:warning`). The client references the type included in the message to select the appropriate template.
 
-The client inserts the message string into the `.flash-message-text` element within the template. There are no additional constraints. Feel free to add additional elements (such as a dismiss button) as needed.
+The client inserts the message string into the element marked with `data-flash-message-text` within the template. For compatibility, the default renderer also accepts the legacy `.flash-message-text` marker. There are no additional constraints. Feel free to add additional elements (such as a dismiss button) as needed.
 
 ## JavaScript API and extensions
 

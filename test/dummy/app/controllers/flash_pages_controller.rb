@@ -68,6 +68,12 @@ class FlashPagesController < ApplicationController
     flash.now[:notice] = 'Clear me (notice)'
   end
 
+  def legacy_clear
+    flash.now[:alert] = 'Legacy clear me (alert)'
+    flash.now[:notice] = 'Legacy clear me (notice)'
+    render :clear
+  end
+
   # A dedicated test page used by system tests to exercise render vs consume flows
   def render_consume
     # Provide both a storage (server-embedded) and buttons for client actions
@@ -116,6 +122,8 @@ class FlashPagesController < ApplicationController
       'flash_unified_auto_off'
     when 'custom_renderer'
       'flash_unified_custom_renderer'
+    when 'legacy_clear'
+      'flash_unified_test_legacy_template'
     when 'container_priority'
       'flash_unified_select_priority'
     when 'container_primary'

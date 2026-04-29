@@ -17,7 +17,7 @@ class FlashUnifiedViewHelperTest < ActionView::TestCase
     html = flash_templates
     assert_includes html, 'template id="flash-message-template-notice"'
     assert_includes html, 'template id="flash-message-template-alert"'
-    assert_includes html, 'class="flash-message-text"'
+    assert_includes html, 'data-flash-message-text'
   end
 
   test 'flash_general_error_messages contains network key' do
