@@ -130,8 +130,10 @@ function getFlashMessageContainers(options = {}) {
   }
   if (sortByPriority) {
     list.sort((a, b) => {
-      const pa = Number(getContainerPriorityAttr(a));
-      const pb = Number(getContainerPriorityAttr(b));
+      const rawPa = getContainerPriorityAttr(a);
+      const rawPb = getContainerPriorityAttr(b);
+      const pa = rawPa === null || rawPa === '' ? Number.NaN : Number(rawPa);
+      const pb = rawPb === null || rawPb === '' ? Number.NaN : Number(rawPb);
       const va = Number.isFinite(pa) ? pa : Number.POSITIVE_INFINITY;
       const vb = Number.isFinite(pb) ? pb : Number.POSITIVE_INFINITY;
       return va - vb;

@@ -1,5 +1,7 @@
 module FlashUnified
   module ViewHelper
+    include Turbo::Streams::ActionHelper
+
     # General flash-storage using by Turbo Stream
     def flash_global_storage
       render partial: "flash_unified/global_storage"
@@ -38,12 +40,13 @@ module FlashUnified
     # Usage in controllers:
     #   render turbo_stream: helpers.flash_turbo_stream
     def flash_turbo_stream
-      # Migration compatibility: append to both canonical and legacy global
-      # storage IDs so existing layouts continue to receive flash messages.
-      safe_join([
-        turbo_stream.append("flash-unified-storage", partial: "flash_unified/storage"),
-        turbo_stream.append("flash-storage", partial: "flash_unified/storage")
-      ])
+      # Migration compatibility: append to whichever canonical/legacy global
+      # storage root exists without target-not-found noise for the missing one.
+      turbo_stream_action_tag(
+        "append",
+        targets: "#flash-unified-storage, #flash-storage",
+        template: render(partial: "flash_unified/storage", formats: [:html])
+      )
     end
 
     # Wrapper helper that renders the common flash-unified pieces in a single

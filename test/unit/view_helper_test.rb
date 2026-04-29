@@ -43,4 +43,11 @@ class FlashUnifiedViewHelperTest < ActionView::TestCase
     assert_includes html, 'data-type="notice"'
     assert_includes html, 'Hello'
   end
+
+  test 'flash_turbo_stream targets canonical and legacy roots via css selector' do
+    html = flash_turbo_stream
+    assert_includes html, 'action="append"'
+    assert_includes html, 'targets="#flash-unified-storage, #flash-storage"'
+    assert_includes html, 'data-flash-unified-storage'
+  end
 end
