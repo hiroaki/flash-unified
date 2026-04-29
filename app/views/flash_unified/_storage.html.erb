@@ -1,7 +1,12 @@
-<div data-flash-storage data-object-id="<%= flash.object_id %>" style="display: none;">
+<div
+  data-flash-unified-storage
+  data-flash-storage
+  data-flash-unified-storage-dedupe-key="<%= flash.object_id %>"
+  data-object-id="<%= flash.object_id %>"
+  style="display: none;">
   <ul>
     <% flash.each do |type, message| %>
-      <li data-type="<%= type %>"><%= message %></li>
+      <li data-flash-unified-message-type="<%= type %>" data-type="<%= type %>"><%= message %></li>
     <% end %>
   </ul>
 </div>

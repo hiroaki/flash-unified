@@ -25,10 +25,10 @@ The key point to solving these challenges is that rendering needs to be performe
 
 The mechanism is simple; to implement it, we only need to define the rules for embedding. In this gem, we define the embedded DOM structure below and refer to it as a "storage element":
 ```erb
-<div data-flash-storage style="display: none;">
+<div data-flash-unified-storage style="display: none;">
   <ul>
     <% flash.each do |type, message| %>
-      <li data-type="<%= type %>"><%= message %></li>
+      <li data-flash-unified-message-type="<%= type %>"><%= message %></li>
     <% end %>
   </ul>
 </div>
@@ -125,6 +125,14 @@ render turbo_stream: helpers.flash_turbo_stream
 ```
 
 That's it. Event handlers that monitor page changes will scan storage elements and render messages into containers.
+
+## Deprecation policy
+
+This version supports both new (`flash-unified-*`) and legacy marker names during the transition period.
+
+Legacy marker names are planned for removal in a future version. For new integrations, use the new names only.
+
+For the name mapping and migration steps, see [`UPGRADING.md`](UPGRADING.md).
 
 ## Detailed usage
 

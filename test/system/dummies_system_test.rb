@@ -72,7 +72,7 @@ class DummiesSystemTest < ActionDispatch::SystemTestCase
     visit "/dummies"
 
     # The general errors list is rendered but hidden in the layout; read it using visible: :all
-    assert_selector '#general-error-messages', visible: :all
+    assert_selector '#flash-unified-general-errors', visible: :all
 
     # Trigger a turbo:fetch-request-error event to simulate a fetch/network failure
     page.execute_script(<<~JS)
@@ -89,11 +89,11 @@ class DummiesSystemTest < ActionDispatch::SystemTestCase
     visit "/dummies"
 
     # Read the network message from the hidden list
-    network_message = find('#general-error-messages li[data-status="network"]', visible: :all).text.strip
+    network_message = find('#flash-unified-general-errors li[data-status="network"]', visible: :all).text.strip
 
     # Ensure any previous flash messages/storages are removed so the handler will add the network message
     page.execute_script("document.querySelectorAll('[data-flash-storage]').forEach(e => e.remove())")
-    page.execute_script("document.getElementById('flash-storage').innerHTML = ''")
+    page.execute_script("document.getElementById('flash-unified-storage').innerHTML = ''")
     page.execute_script("document.querySelectorAll('[data-flash-message-container]').forEach(c => c.innerHTML = '')")
 
     # Dispatch turbo:submit-end with no fetchResponse (undefined in detail)
@@ -109,7 +109,7 @@ class DummiesSystemTest < ActionDispatch::SystemTestCase
     visit "/dummies"
 
     # Ensure we have the 413 message available in the hidden general list
-    assert_selector '#general-error-messages li[data-status="413"]', visible: :all
+    assert_selector '#flash-unified-general-errors li[data-status="413"]', visible: :all
 
     # Dispatch turbo:submit-end with a fake fetchResponse having statusCode 413
     page.execute_script(<<~JS)

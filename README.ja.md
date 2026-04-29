@@ -25,10 +25,10 @@ FlashUnified は、サーバーサイドとクライアントサイドの両方�
 
 このように仕組みは単純で、その仕組を実装するためには、どのように埋め込みを行うかのルールを決めるだけです。この gem では次のように埋め込みの DOM 構造を定義し、「ストレージ」と呼ぶことにします：
 ```erb
-<div data-flash-storage style="display: none;">
+<div data-flash-unified-storage style="display: none;">
   <ul>
     <% flash.each do |type, message| %>
-      <li data-type="<%= type %>"><%= message %></li>
+      <li data-flash-unified-message-type="<%= type %>"><%= message %></li>
     <% end %>
   </ul>
 </div>
@@ -124,6 +124,14 @@ render turbo_stream: helpers.flash_turbo_stream
 ```
 
 以上です。ページの変更を監視するイベントのハンドラーが、ストレージを走査してメッセージをコンテナに描画します。
+
+## 非推奨ポリシー
+
+現行バージョンでは、移行期間として新しい名称（`flash-unified-*`）と旧名称の両方をサポートしています。
+
+旧名称は将来のバージョンで削除予定です。新規の実装では新しい名称のみを使用してください。
+
+名称の対応と移行手順は [`UPGRADING.ja.md`](UPGRADING.ja.md) を参照してください。
 
 ## 詳細な使い方
 

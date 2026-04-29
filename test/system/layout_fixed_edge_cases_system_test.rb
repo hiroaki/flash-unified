@@ -24,13 +24,13 @@ class LayoutFixedEdgeCasesSystemTest < ApplicationSystemTestCase
     assert_equal [], res
   end
 
-  test "appendMessageToStorage creates an inner storage under #flash-storage with li[data-type]" do
+  test "appendMessageToStorage creates an inner storage under global root with li[data-type]" do
     visit "/flash/render_consume_fixed"
 
     # Remove any page-local storages but keep the global root
     page.execute_script("document.querySelectorAll('[data-flash-storage]').forEach(e => e.remove())")
-    has_root = page.evaluate_script("!!document.getElementById('flash-storage')")
-    assert has_root, 'expected #flash-storage root to exist in layout'
+    has_root = page.evaluate_script("!!document.getElementById('flash-unified-storage')")
+    assert has_root, 'expected global storage root to exist in layout'
 
     # Append via client API
     click_button 'Add Hello'

@@ -12,6 +12,47 @@
  */
 let customRenderer = null;
 
+// Migration compatibility: during the alpha period we support both canonical
+// (flash-unified-*) and legacy markers so existing hand-written integrations
+// continue to work while docs/examples promote canonical names.
+const STORAGE_SELECTOR = '[data-flash-unified-storage], [data-flash-storage]';
+const CONTAINER_SELECTOR = '[data-flash-unified-container], [data-flash-message-container]';
+const MESSAGE_SELECTOR = '[data-flash-unified-message], [data-flash-message]';
+
+function findByIdWithLegacy(canonicalId, legacyId) {
+  return document.getElementById(canonicalId) || document.getElementById(legacyId);
+}
+
+function messageTemplateIdCandidates(type) {
+  return [`flash-unified-template-${type}`, `flash-message-template-${type}`];
+}
+
+function getContainerPrimaryAttr(el) {
+  return el.getAttribute('data-flash-unified-container-primary') || el.getAttribute('data-flash-primary');
+}
+
+function getContainerPriorityAttr(el) {
+  return el.getAttribute('data-flash-unified-container-priority') || el.getAttribute('data-flash-message-container-priority');
+}
+
+function getStorageDedupeKey(storage) {
+  return storage.getAttribute('data-flash-unified-storage-dedupe-key') || storage.getAttribute('data-object-id');
+}
+
+function getMessageTypeFromLi(li) {
+  return li.getAttribute('data-flash-unified-message-type') || li.getAttribute('data-type') || 'notice';
+}
+
+function setMessageTypeOnLi(li, type) {
+  li.setAttribute('data-flash-unified-message-type', type);
+  li.setAttribute('data-type', type);
+}
+
+function markMessageNode(node) {
+  node.setAttribute('data-flash-unified-message', 'true');
+  node.setAttribute('data-flash-message', 'true');
+}
+
 /**
  * Set a custom renderer function to replace the default DOM-based rendering.
  * Pass `null` to reset to default behavior.
@@ -51,13 +92,13 @@ function isVisible(el) {
 
 /**
  * Collect flash message containers with optional filtering/sorting.
- * By default, returns all elements matching `[data-flash-message-container]`.
+ * By default, returns all elements matching container markers.
  * This function is intended for custom renderers to choose target containers.
  *
  * Options:
- * - primaryOnly?: boolean — If true, only include elements with `data-flash-primary` present or set to "true".
+ * - primaryOnly?: boolean — If true, only include elements with container primary marker present or set to "true".
  * - visibleOnly?: boolean — If true, include only elements considered visible.
- * - sortByPriority?: boolean — If true, sort by numeric `data-flash-message-container-priority` ascending (missing treated as Infinity).
+ * - sortByPriority?: boolean — If true, sort by numeric container priority marker ascending (missing treated as Infinity).
  * - firstOnly?: boolean — If true, return at most one element after filtering/sorting.
  * - filter?: (el: Element) => boolean — Additional predicate to include elements.
  *
@@ -73,11 +114,13 @@ function getFlashMessageContainers(options = {}) {
     filter
   } = options;
 
-  // Fixed selector by gem convention
-  let list = Array.from(document.querySelectorAll('[data-flash-message-container]'));
+  let list = Array.from(document.querySelectorAll(CONTAINER_SELECTOR));
 
   if (primaryOnly) {
-    list = list.filter(el => el.hasAttribute('data-flash-primary') && (el.getAttribute('data-flash-primary') !== 'false'));
+    list = list.filter(el => {
+      const val = getContainerPrimaryAttr(el);
+      return val !== null && val !== 'false';
+    });
   }
   if (visibleOnly) {
     list = list.filter(isVisible);
@@ -87,8 +130,10 @@ function getFlashMessageContainers(options = {}) {
   }
   if (sortByPriority) {
     list.sort((a, b) => {
-      const pa = Number(a.getAttribute('data-flash-message-container-priority'));
-      const pb = Number(b.getAttribute('data-flash-message-container-priority'));
+      const rawPa = getContainerPriorityAttr(a);
+      const rawPb = getContainerPriorityAttr(b);
+      const pa = rawPa === null || rawPa === '' ? Number.NaN : Number(rawPa);
+      const pb = rawPb === null || rawPb === '' ? Number.NaN : Number(rawPb);
       const va = Number.isFinite(pa) ? pa : Number.POSITIVE_INFINITY;
       const vb = Number.isFinite(pb) ? pb : Number.POSITIVE_INFINITY;
       return va - vb;
@@ -189,22 +234,23 @@ function renderFlashMessages() {
 }
 
 /**
- * Collect messages from all `[data-flash-storage]` elements.
+ * Collect messages from all storage elements.
  * By default, removes each storage after reading; pass `keep = true` to preserve them.
  *
- * Notes about deduplication using object_id:
- * - Each storage may include a `data-object-id` attribute populated server-side
+ * Notes about deduplication key:
+ * - Each storage may include a `data-flash-unified-storage-dedupe-key` attribute populated server-side
+ *   (legacy attribute `data-object-id` is also supported during migration).
  *   (the Rails `flash.object_id` in `_storage.html.erb`). This value is used to
  *   deduplicate storages that originate from the same FlashHash instance.
  * - This is useful for the common case where the same `flash` object is rendered
  *   both in the layout and inside a Turbo Frame during a single full-page render:
- *   those storages will share the same `data-object-id` and only one will be processed.
+ *   those storages will share the same dedupe key and only one will be processed.
  * - `flash.object_id` is scoped to the Ruby object instance for the current request.
  *   Storages coming from separate requests will have different object ids and
  *   therefore will not be deduplicated (this is intentional — separate requests
  *   should be allowed to show their messages).
- * - If a storage does not provide `data-object-id`, it is treated as independent.
- *   Consumers may want to ensure the server partial emits `data-object-id` when
+ * - If a storage does not provide a dedupe key, it is treated as independent.
+ *   Consumers may want to ensure the server partial emits a dedupe key when
  *   appropriate to enable robust deduplication.
  *
  * @param {boolean} [keep=false] - When true, do not remove storage elements after reading.
@@ -214,11 +260,11 @@ function renderFlashMessages() {
  * const msgs = consumeFlashMessages(true);
  */
 function consumeFlashMessages(keep = false) {
-  const storages = document.querySelectorAll('[data-flash-storage]');
+  const storages = document.querySelectorAll(STORAGE_SELECTOR);
   const seen = new Set();
   const messages = [];
   storages.forEach(storage => {
-    const objectId = storage.getAttribute('data-object-id');
+    const objectId = getStorageDedupeKey(storage);
     if (objectId && seen.has(objectId)) {
       if (!keep) storage.remove();
       return; // skip duplicate
@@ -228,7 +274,7 @@ function consumeFlashMessages(keep = false) {
     const ul = storage.querySelector('ul');
     if (ul && ul.children.length > 0) {
       ul.querySelectorAll('li').forEach(li => {
-        messages.push({ type: li.dataset.type || 'notice', message: li.textContent.trim() });
+        messages.push({ type: getMessageTypeFromLi(li), message: li.textContent.trim() });
       });
     }
     if (!keep) storage.remove();
@@ -250,7 +296,7 @@ function aggregateFlashMessages() {
 }
 
 /**
- * Append a message to the global storage element (`#flash-storage`).
+ * Append a message to the global storage element.
  *
  * @param {string} message - The message text to append.
  * @param {string} [type='notice'] - The flash type (e.g. 'notice', 'alert').
@@ -260,15 +306,16 @@ function aggregateFlashMessages() {
  * appendMessageToStorage('Saved', 'notice');
  */
 function appendMessageToStorage(message, type = 'notice') {
-  const storageContainer = document.getElementById("flash-storage");
+  const storageContainer = findByIdWithLegacy('flash-unified-storage', 'flash-storage');
   if (!storageContainer) {
-    console.error('[FlashUnified] #flash-storage not found. Define <div id="flash-storage" style="display:none"></div> in layout.');
+    console.error('[FlashUnified] Storage root not found. Define <div id="flash-unified-storage" style="display:none"></div> in layout.');
     return;
   }
 
-  let storage = storageContainer.querySelector('[data-flash-storage]');
+  let storage = storageContainer.querySelector(STORAGE_SELECTOR);
   if (!storage) {
     storage = document.createElement('div');
+    storage.setAttribute('data-flash-unified-storage', 'true');
     storage.setAttribute('data-flash-storage', 'true');
     storage.style.display = 'none';
     storageContainer.appendChild(storage);
@@ -281,7 +328,7 @@ function appendMessageToStorage(message, type = 'notice') {
   }
 
   const li = document.createElement('li');
-  li.dataset.type = type;
+  setMessageTypeOnLi(li, type);
   li.textContent = message;
   ul.appendChild(li);
 }
@@ -313,7 +360,7 @@ function installCustomEventListener() {
 
 // TODO: Drop legacy `.flash-message-text` support in the next major version.
 function findFlashMessageTextTarget(root) {
-  return root.querySelector('[data-flash-message-text]') || root.querySelector('.flash-message-text');
+  return root.querySelector('[data-flash-unified-message-text]') || root.querySelector('[data-flash-message-text]') || root.querySelector('.flash-message-text');
 }
 
 /**
@@ -324,13 +371,13 @@ function findFlashMessageTextTarget(root) {
  * @returns {void}
  */
 function clearFlashMessages(message) {
-  document.querySelectorAll('[data-flash-message-container]').forEach(container => {
+  document.querySelectorAll(CONTAINER_SELECTOR).forEach(container => {
     if (typeof message === 'undefined') {
-      container.querySelectorAll('[data-flash-message]')?.forEach(n => n.remove());
+      container.querySelectorAll(MESSAGE_SELECTOR)?.forEach(n => n.remove());
       return;
     }
 
-    container.querySelectorAll('[data-flash-message]')?.forEach(n => {
+    container.querySelectorAll(MESSAGE_SELECTOR)?.forEach(n => {
       const text = findFlashMessageTextTarget(n);
       if (text && text.textContent.trim() === message) n.remove();
     });
@@ -338,7 +385,7 @@ function clearFlashMessages(message) {
 }
 
 /**
- * Create a DOM node for a flash message using the `flash-message-template-<type>` template.
+ * Create a DOM node for a flash message using the template marker for `type`.
  * Falls back to a minimal element when the template is missing.
  *
  * @param {string} type
@@ -346,20 +393,20 @@ function clearFlashMessages(message) {
  * @returns {Element}
  */
 function createFlashMessageNode(type, message) {
-  const templateId = `flash-message-template-${type}`;
-  const template = document.getElementById(templateId);
+  const templateId = messageTemplateIdCandidates(type).find(id => document.getElementById(id));
+  const template = templateId ? document.getElementById(templateId) : null;
   if (template && template.content) {
     const base = template.content.firstElementChild;
     if (!base) {
       console.error(`[FlashUnified] Template #${templateId} has no root element`);
       const node = document.createElement('div');
       node.setAttribute('role', 'alert');
-      node.setAttribute('data-flash-message', 'true');
+      markMessageNode(node);
       node.textContent = message;
       return node;
     }
     const root = base.cloneNode(true);
-    root.setAttribute('data-flash-message', 'true');
+    markMessageNode(root);
     const span = findFlashMessageTextTarget(root);
     if (span) span.textContent = message;
     return root;
@@ -368,8 +415,9 @@ function createFlashMessageNode(type, message) {
     // Fallback element when template is missing
     const node = document.createElement('div');
     node.setAttribute('role', 'alert');
-    node.setAttribute('data-flash-message', 'true');
+    markMessageNode(node);
     const span = document.createElement('span');
+    span.setAttribute('data-flash-unified-message-text', '');
     span.setAttribute('data-flash-message-text', '');
     span.textContent = message;
     node.appendChild(span);
@@ -378,12 +426,12 @@ function createFlashMessageNode(type, message) {
 }
 
 /**
- * Return true if any `[data-flash-storage]` contains at least one `<li>`.
+ * Return true if any storage contains at least one `<li>`.
  *
  * @returns {boolean}
  */
 function storageHasMessages() {
-  const storages = document.querySelectorAll('[data-flash-storage]');
+  const storages = document.querySelectorAll(STORAGE_SELECTOR);
   for (const storage of storages) {
     const ul = storage.querySelector('ul');
     if (ul && ul.children.length > 0) {
@@ -432,10 +480,10 @@ function startMutationObserver() {
       if (m.type === 'childList') {
         m.addedNodes.forEach((node) => {
           if (!(node instanceof Element)) return;
-          if (node.matches('[data-flash-storage], [data-flash-message-container], template[id^="flash-message-template-"]')) {
+          if (node.matches(`${STORAGE_SELECTOR}, ${CONTAINER_SELECTOR}, template[id^="flash-unified-template-"], template[id^="flash-message-template-"]`)) {
             shouldRender = true;
           }
-          if (node.querySelector && node.querySelector('[data-flash-storage]')) {
+          if (node.querySelector && node.querySelector(STORAGE_SELECTOR)) {
             shouldRender = true;
           }
         });
