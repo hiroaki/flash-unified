@@ -6,7 +6,7 @@
   - Users can install these listeners if they want automatic error message display.
 
   Required DOM:
-    <ul id="general-error-messages" style="display:none;">
+    <ul id="flash-unified-general-errors" style="display:none;">
       <li data-status="413">Payload Too Large</li>
       <li data-status="network">Network Error</li>
       <li data-status="500">Internal Server Error</li>
@@ -23,10 +23,10 @@ import { renderFlashMessages, appendMessageToStorage, storageHasMessages } from 
 
 /* エラーステータスに応じた汎用メッセージをストレージへ追加します。
   既にストレージにメッセージが存在する場合は何もしません。
-  'network' または 4xx/5xx を対象とし、#general-error-messages から文言を解決します。
+  'network' または 4xx/5xx を対象とし、一般エラーリストから文言を解決します。
   ---
   Add a general error message to storage based on status ('network' or 4xx/5xx).
-  If any storage already has messages, this is a no-op. Looks up text in #general-error-messages.
+  If any storage already has messages, this is a no-op. Looks up text in the general errors list.
 */
 function resolveAndAppendErrorMessage(status) {
   // If any flash storage already contains messages, do not override it
@@ -49,10 +49,10 @@ function resolveAndAppendErrorMessage(status) {
   }
 
   // Avoid duplicates when container has children
-  const container = document.querySelector('[data-flash-message-container]');
-  if (container && container.querySelector('[data-flash-message]')) return;
+  const container = document.querySelector('[data-flash-unified-container], [data-flash-message-container]');
+  if (container && container.querySelector('[data-flash-unified-message], [data-flash-message]')) return;
 
-  const generalerrors = document.getElementById('general-error-messages');
+  const generalerrors = document.getElementById('flash-unified-general-errors') || document.getElementById('general-error-messages');
   if (!generalerrors) {
     console.error('[FlashUnified] No general error messages element found');
     return;

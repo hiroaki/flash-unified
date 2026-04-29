@@ -25,10 +25,10 @@ The key point to solving these challenges is that rendering needs to be performe
 
 The mechanism is simple; to implement it, we only need to define the rules for embedding. In this gem, we define the embedded DOM structure below and refer to it as a "storage element":
 ```erb
-<div data-flash-storage style="display: none;">
+<div data-flash-unified-storage style="display: none;">
   <ul>
     <% flash.each do |type, message| %>
-      <li data-type="<%= type %>"><%= message %></li>
+      <li data-flash-unified-message-type="<%= type %>"><%= message %></li>
     <% end %>
   </ul>
 </div>

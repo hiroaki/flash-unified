@@ -22,10 +22,7 @@ class FlashPagesController < ApplicationController
     flash.now[:notice] = 'From stream'
     respond_to do |format|
       format.turbo_stream do
-        render turbo_stream: turbo_stream.append(
-          'flash-storage',
-          partial: 'flash_unified/storage'
-        )
+        render turbo_stream: helpers.flash_turbo_stream
       end
       format.html { head :ok }
     end

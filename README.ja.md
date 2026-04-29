@@ -25,10 +25,10 @@ FlashUnified は、サーバーサイドとクライアントサイドの両方�
 
 このように仕組みは単純で、その仕組を実装するためには、どのように埋め込みを行うかのルールを決めるだけです。この gem では次のように埋め込みの DOM 構造を定義し、「ストレージ」と呼ぶことにします：
 ```erb
-<div data-flash-storage style="display: none;">
+<div data-flash-unified-storage style="display: none;">
   <ul>
     <% flash.each do |type, message| %>
-      <li data-type="<%= type %>"><%= message %></li>
+      <li data-flash-unified-message-type="<%= type %>"><%= message %></li>
     <% end %>
   </ul>
 </div>

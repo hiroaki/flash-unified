@@ -38,7 +38,12 @@ module FlashUnified
     # Usage in controllers:
     #   render turbo_stream: helpers.flash_turbo_stream
     def flash_turbo_stream
-      turbo_stream.append("flash-storage", partial: "flash_unified/storage")
+      # Migration compatibility: append to both canonical and legacy global
+      # storage IDs so existing layouts continue to receive flash messages.
+      safe_join([
+        turbo_stream.append("flash-unified-storage", partial: "flash_unified/storage"),
+        turbo_stream.append("flash-storage", partial: "flash_unified/storage")
+      ])
     end
 
     # Wrapper helper that renders the common flash-unified pieces in a single

@@ -51,14 +51,14 @@ class LayoutFixedTurboInteractionsSystemTest < ApplicationSystemTestCase
   test "E - Client append fallback: append to global storage then render" do
     visit "/flash/render_consume_fixed"
 
-    # Remove any page-local storages but keep the layout-provided #flash-storage
+    # Remove any page-local storages but keep the layout-provided storage root
     page.execute_script("document.querySelectorAll('[data-flash-storage]').forEach(e => e.remove())")
 
-    # Ensure the global storage root exists (#flash-storage)
-    has_root = page.evaluate_script("!!document.getElementById('flash-storage')")
+    # Ensure the global storage root exists
+    has_root = page.evaluate_script("!!document.getElementById('flash-unified-storage')")
     assert has_root
 
-    # Append via client API (this should create an inner storage under #flash-storage)
+    # Append via client API (this should create an inner storage under the global root)
     click_button 'Add Hello'
 
     # Confirm that a storage element was created in the DOM
